@@ -25,7 +25,7 @@ import org.eclipse.ui.handlers.HandlerUtil;
 import br.com.riselabs.vparser.lexer.Lexer;
 import br.com.riselabs.vparser.lexer.beans.Token;
 
-public class SampleHandler extends AbstractHandler {
+public class FclCheckHandler extends AbstractHandler {
 
 	public Object execute(ExecutionEvent event) throws ExecutionException {
 		IProject project = getSelectedProject(event);
