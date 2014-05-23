@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+
+   <extension
+         point="org.eclipse.ui.commands">
+      <category
+            name="Sample Category"
+            id="br.com.riselabs.fclcheck.commands.category">
+      </category>
+      <command
+            name="Sample Command"
+            categoryId="br.com.riselabs.fclcheck.commands.category"
+            id="br.com.riselabs.fclcheck.commands.sampleCommand">
+      </command>
+   </extension>
+   <extension
+         point="org.eclipse.ui.handlers">
+      <handler
+            commandId="br.com.riselabs.fclcheck.commands.sampleCommand"
+            class="br.com.riselabs.fclcheck.handlers.SampleHandler">
+      </handler>
+   </extension>
+   <extension
+         point="org.eclipse.ui.bindings">
+      <key
+            commandId="br.com.riselabs.fclcheck.commands.sampleCommand"
+            contextId="org.eclipse.ui.contexts.window"
+            sequence="M1+6"
+            schemeId="org.eclipse.ui.defaultAcceleratorConfiguration">
+      </key>
+   </extension>
+   <extension
+         point="org.eclipse.ui.menus">
+      <menuContribution
+            locationURI="menu:org.eclipse.ui.main.menu?after=additions">
+         <menu
+               label="FCL Check"
+               mnemonic="M"
+               id="br.com.riselabs.fclcheck.menus.sampleMenu">
+            <command
+                  commandId="br.com.riselabs.fclcheck.commands.sampleCommand"
+                  mnemonic="S"
+                  id="br.com.riselabs.fclcheck.menus.sampleCommand">
+            </command>
+         </menu>
+      </menuContribution>
+      <menuContribution
+            locationURI="toolbar:org.eclipse.ui.main.toolbar?after=additions">
+         <toolbar
+               id="br.com.riselabs.fclcheck.toolbars.sampleToolbar">
+            <command
+                  commandId="br.com.riselabs.fclcheck.commands.sampleCommand"
+                  icon="icons/sample.gif"
+                  tooltip="Check Variability Points"
+                  id="br.com.riselabs.fclcheck.toolbars.sampleCommand">
+            </command>
+         </toolbar>
+      </menuContribution>
+      
+      
+      <menuContribution
+            locationURI="popup:org.eclipse.jdt.ui.PackageExplorer">
+            <command
+                  commandId="TestPopupMenu.commands.sampleCommand"
+                  id="TestPopupMenu.menus.sampleCommand"
+                  mnemonic="S">
+ 
+                    <visibleWhen>
+				           <with variable="activeMenuSelection">
+				            <iterate
+				                 ifEmpty="false">
+				             <adapt type="org.eclipse.core.resources.IResource">
+				               <test property="org.eclipse.core.resources.name" value="*.java" />
+				             </adapt>
+				            </iterate>
+				           </with>
+         			</visibleWhen>
+            </command>
+      </menuContribution>
+      
+      <menuContribution
+            locationURI="popup:org.eclipse.jdt.ui.PackageExplorer">
+         <command
+               commandId="br.com.riselabs.fclcheck.commands.sampleCommand"
+               label="Enable FCLCheck inMenu"
+               icon="icons/sample.gif"
+               id="br.com.riselabs.fclcheck.popup.context">
+               <visibleWhen>
+               <with
+                     variable="activeMenuSelection">
+                  <iterate ifEmpty="false">
+                     <adapt
+                           type="org.eclipse.core.resources.IProject">
+                     </adapt>
+                  </iterate>
+               </with>
+            </visibleWhen>
+         </command>
+      </menuContribution>
+   </extension>
+   
+</plugin>
