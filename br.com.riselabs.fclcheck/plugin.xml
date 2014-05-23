@@ -51,7 +51,7 @@
                id="br.com.riselabs.fclcheck.toolbars.dclsuiteToolbar">
             <command
                   commandId="br.com.riselabs.fclcheck.commands.fclcheckCommand"
-                  icon="icons/sample.gif"
+                  icon="icons/fclicon16.png"
                   id="br.com.riselabs.fclcheck.toolbars.dclsuiteCommand">
             </command>
          </toolbar>
@@ -60,7 +60,7 @@
             locationURI="popup:org.eclipse.jdt.ui.PackageExplorer">
          <command
                commandId="br.com.riselabs.fclcheck.commands.fclcheckCommand"
-               icon="icons/sample.gif"
+               icon="icons/fclicon16.png"
                id="br.com.riselabs.fclcheck.popup.context">
                <visibleWhen>
                <with
