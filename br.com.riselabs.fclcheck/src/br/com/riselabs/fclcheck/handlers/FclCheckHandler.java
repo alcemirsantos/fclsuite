@@ -82,7 +82,7 @@ public class FclCheckHandler extends AbstractHandler {
 
 	private void checkProject(IProject project) throws CoreException,
 			JavaModelException {
-		System.out.println("// ======= //\n Checking project: "
+		System.out.println("// ============================== //\nChecking project: "
 				+ project.getName());
 
 		// check if we have a Java project

@@ -138,9 +138,9 @@ public class Lexer {
 				else if(compare(c, Symbols.Digit))
 					buffer += c;
 				else if (c.equals("_"))
-					buffer += "c";
+					buffer += c;
 				else if (c.equals("-"))
-					buffer += "c";
+					buffer += c;
 				else if(compare(c,Symbols.Return) || input.length() == lookahead){ // end of the input
 					isInputEnd = true;
 					status = 11;
