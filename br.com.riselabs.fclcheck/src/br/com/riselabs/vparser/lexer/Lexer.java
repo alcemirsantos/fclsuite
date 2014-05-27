@@ -21,7 +21,7 @@ public class Lexer {
 	private static int lexemeStartPoint = 0;
 	private static List<LexerError> errors;
 
-	public static List<Token> tokenize(String str) {
+	public static List<Token> tokenize(String str, boolean isCorCPP) {
 		init();
 		Token token = null;
 		setInput(str);
@@ -33,16 +33,29 @@ public class Lexer {
 			
 			if(token != null){
 				result.add(token);
-//			}else if(token.getLexeme()!=TokenType.DOUBLE_SLASH){
-				
 			}else{ // found an error
 				break;
 			}
 			
-			// testing for a comment line
-			if(result.size()==1 && result.get(0).getLexeme()!=TokenType.DOUBLE_SLASH){
-				result.clear();
-				break; 
+			// testing for a C/C++ macro expression line
+			if(isCorCPP){
+				if(result.size()>1) continue;
+				else if(result.size() ==1){
+					if ( result.get(0).getLexeme()!=TokenType.TAG_MACRO && result.get(0).getLexeme()!=TokenType.EXP_MACRO) {
+						result.clear();
+						break;
+					}
+				}
+			
+			// testing for a Java macro expression line
+			} else {
+				if(result.size()>2) continue;
+				else if(result.size() == 2){
+					if(result.get(1).getLexeme()!=TokenType.TAG_MACRO && result.get(1).getLexeme()!=TokenType.EXP_MACRO){
+						result.clear();
+						break;
+					}
+				}
 			}
 		}
 		return result;

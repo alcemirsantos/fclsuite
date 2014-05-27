@@ -1,11 +1,21 @@
 package br.com.riselabs.fclcheck.handlers;
 
+import java.io.InputStream;
 import java.util.List;
+import java.util.Scanner;
+import java.util.StringTokenizer;
 
+import org.eclipse.cdt.core.model.CModelException;
+import org.eclipse.cdt.core.model.CoreModel;
+import org.eclipse.cdt.core.model.ICElement;
+import org.eclipse.cdt.core.model.ICProject;
+import org.eclipse.cdt.core.model.ISourceRoot;
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IJavaProject;
@@ -65,35 +75,118 @@ public class FclCheckHandler extends AbstractHandler {
 
 		Object objectSelected = structured.iterator().next();
 
-		// XX TODO test also for C nature and not cast it to a IJavaProject
-		// directly. XX
-		//
-		// if (project.hasNature(JavaCore.NATURE_ID)) {
-		// targetProject = JavaCore.create(project);
-		// }
-
-		selectedProject = ((IJavaProject) objectSelected).getProject();
+		selectedProject = ((IProject) objectSelected).getProject();
 
 		return selectedProject;
 	}
 
 	private void checkProject(IProject project) throws CoreException,
 			JavaModelException {
-		System.out.println("// ======= //\n Checking project: " + project.getName());
+		System.out.println("// ======= //\n Checking project: "
+				+ project.getName());
+
 		// check if we have a Java project
 		if (project.isNatureEnabled("org.eclipse.jdt.core.javanature")) {
 			IJavaProject javaProject = JavaCore.create(project);
 			walkThroughPackages(javaProject);
+
+			// Check if we have C or C++ project
+		} else if (project.isNatureEnabled("org.eclipse.cdt.core.cnature")
+				|| project.isNatureEnabled("org.eclipse.cdt.core.ccnature")) {
+			ICProject cProject = (CoreModel.create(project.getWorkspace()
+					.getRoot())).getCProject(project.getName());
+			walkThroughPackages(cProject);
+
+			// In the the case the 'project' has a different nature from Java or
+			// C/C++
+		} else {
+			showMessage(
+					"Invalide project nature",
+					"FCLcheck is only available for projects of"
+							+ "both natures: C/C++ and Java.\n"
+							+ "We expect to support additional natures in the furture.");
 		}
+	}
+
+	private void walkThroughPackages(ICProject cProject) throws CModelException {
+		ISourceRoot[] packages = cProject.getSourceRoots();
+		for (ISourceRoot srcRoot : packages) {
+			System.out.println("source root: " + srcRoot.getElementName());
+			walThroughFiles(srcRoot);
+
+		}
+	}
+
+	/**
+	 * Given a srcRoot this mehtod walks throuht all the files.
+	 *  
+	 * @param srcRoot
+	 * @throws CModelException
+	 */
+	private void walThroughFiles(ISourceRoot srcRoot) throws CModelException {
+		for (ICElement element : srcRoot.getChildren()) {
+			StringTokenizer tkn = getCFileTokenized(element);
+			while (tkn.hasMoreElements()) {
+				String s = (String) tkn.nextElement();
+				System.out.println("icelement buffer: "	+ s);
+				List<Token> tokens = Lexer.tokenize(s,true);
+				for (Token token : tokens) {
+					System.out.println(token.toString());
+				}
+			}
+		}
+	}
+
+	/**
+	 * Returns a StringTokenizer extracted from the stream found in the C file
+	 * 
+	 * @param element
+	 * @return
+	 */
+	private StringTokenizer getCFileTokenized(ICElement element) {
+		System.out.println("icelement: "
+				+ element.getResource().getName());
+
+		IFile f = element.getUnderlyingResource().getType() == IResource.FILE ? (IFile) element
+				.getUnderlyingResource() : null;
+		String stream="";
+		try {
+			stream = convertStreamToString(f.getContents());
+		} catch (CoreException e) {
+			showMessage("CoreException", e.getMessage());
+			e.printStackTrace();
+		}
+		StringTokenizer tkn = new StringTokenizer(stream, "\n");
+		return tkn;
+	}
+
+	/**
+	 * I learned this trick from "Stupid Scanner tricks" article. The reason it
+	 * works is because Scanner iterates over tokens in the stream, and in this
+	 * case we separate tokens using "beginning of the input boundary" (\A) thus
+	 * giving us only one token for the entire contents of the stream.
+	 * 
+	 * Note, if you need to be specific about the input stream's encoding, you
+	 * can provide the second argument to Scanner constructor that indicates
+	 * what charset to use (e.g. "UTF-8").
+	 * 
+	 * Source: http://stackoverflow.com/questions/309424/read-convert-an-inputstream-to-a-string
+	 * 
+	 * @param is
+	 * @return
+	 */
+	private String convertStreamToString(InputStream is) {
+		Scanner s = new Scanner(is).useDelimiter("\\A");
+		return s.hasNext() ? s.next() : "";
 	}
 
 	private void walkThroughPackages(IJavaProject javaProject)
 			throws JavaModelException {
 		IPackageFragment[] packages = javaProject.getPackageFragments();
 		for (IPackageFragment mypackage : packages) {
-//	    Package fragments include all packages in the classpath
-//		We will only look at the package from the source folder
-//		K_BINARY would include also included JARS, e.g. rt.jar
+			// Package fragments include all packages in the classpath
+			// We will only look at the package from the source folder
+			// K_BINARY would include also included JARS, e.g. rt.jar
 			if (mypackage.getKind() == IPackageFragmentRoot.K_SOURCE) {
 				System.out.println("Package " + mypackage.getElementName());
 				checkICompilationUnitInfo(mypackage);
@@ -107,23 +200,23 @@ public class FclCheckHandler extends AbstractHandler {
 			checkCompilationUnitDetails(unit);
 		}
 	}
-	
+
 	private void checkCompilationUnitDetails(ICompilationUnit unit)
 			throws JavaModelException {
 		System.out.println("Source file " + unit.getElementName());
 		Document doc = new Document(unit.getSource());
-		
-		String str="";
-		int start =0, end =0;
+
+		String str = "";
+		int start = 0, end = 0;
 		for (int i = 0; i < doc.getNumberOfLines(); i++) {
 			try {
 				end = doc.getLineLength(i);
 				str = doc.get(start, end);
-				List<Token> tokens=null;
+				List<Token> tokens = null;
 				if (!str.isEmpty()) {
-					tokens = Lexer.tokenize(str);
+					tokens = Lexer.tokenize(str,false);
 					for (Token token : tokens) {
-						System.out.println(token.toString());					
+						System.out.println(token.toString());
 					}
 				}
 				start += end;
