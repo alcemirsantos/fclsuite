@@ -87,6 +87,9 @@ public class Lexer {
 			switch (status) {
 			case 0:
 				c = nextChar();
+				if(isInputEnd == true){ // end of the input
+					return null;
+				}
 				if(compare(c, Symbols.WhiteSpace)){
 					// c is a white space
 					status = 0;
@@ -95,6 +98,10 @@ public class Lexer {
 					isInputEnd = true;
 					return null;
 				}else if(compare(c, Symbols.Letter)){
+					// c is a letter, t may be TAG 
+					status = 10;
+					buffer += c;
+				}else if(c.equals("_")){
 					// c is a letter, t may be TAG 
 					status = 10;
 					buffer += c;
@@ -125,6 +132,11 @@ public class Lexer {
 				}else if(c.equals("!")){ // t may be a UNOP
 					status = 48;
 					buffer += c;
+				}else if(c.equals(";") || 
+						compare(c,Symbols.Return) || 
+						input.length() == lookahead){ // end of the input
+					isInputEnd = true;
+					break;
 				}else{
 					// unknown character
 					status = 99;
@@ -133,6 +145,10 @@ public class Lexer {
 				break;
 			case 10: // it may be a TAG
 				c = nextChar();
+				if(c == null){
+					status = 11;
+					break;
+				}
 				if(compare(c, Symbols.Letter))
 					buffer += c;
 				else if(compare(c, Symbols.Digit))
@@ -155,6 +171,9 @@ public class Lexer {
 			
 			case 20:// it may be a TAG_MACRO or a  EXP_MACRO
 				c = nextChar();
+				if (c == null) {
+					return null;
+				}
 				if(c.equals("i")){
 					buffer += c;
 					status = 21;
@@ -298,6 +317,9 @@ public class Lexer {
 				break;
 			case 40:
 				c=nextChar();
+				if (c == null) {
+					return null;
+				}
 				if (c.equals("/")) {
 					buffer+=c;
 					status = 41;
@@ -320,7 +342,9 @@ public class Lexer {
 				return t;
 			case 43:
 				c=nextChar();
-				if(compare(c,Symbols.Return) || input.length() == lookahead){
+				if(c == null 
+						|| compare(c,Symbols.Return) 
+						|| input.length() == lookahead){
 					isInputEnd = true;
 					status = 431;
 				}else {
@@ -335,6 +359,9 @@ public class Lexer {
 				return t;
 			case 44: 
 				c=nextChar();
+				if (c == null) {
+					return null;
+				}
 				if (c.equals("&")) {
 					buffer+=c;
 					status = 45;
@@ -352,7 +379,9 @@ public class Lexer {
 				return t;
 			case 46: 
 				c=nextChar();
-				if (c.equals("|")) {
+				if(c == null)
+					return null;
+				else if (c.equals("|")) {
 					buffer+=c;
 					status = 47;
 				}else{
@@ -395,6 +424,7 @@ public class Lexer {
 		} // end while
 	} //end method
 
+
 	private static TokenType chooseTokenType(String buffer) {
 		if(buffer.equals("#elif") || buffer.equals("#if"))
 			return TokenType.EXP_MACRO;
@@ -424,7 +454,11 @@ public class Lexer {
 
 	private static String nextChar() {
 		lookahead++;
-		return Character.toString(input.charAt(lookahead));
+		if(input.length() == lookahead){ // end of the input
+			isInputEnd = true;
+			return null;
+		}else
+			return Character.toString(input.charAt(lookahead));
 	}
 	
 	private static boolean compare(String c, String padrao) {

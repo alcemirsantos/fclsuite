@@ -5,18 +5,25 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.StringTokenizer;
 
+import org.eclipse.cdt.core.CCorePlugin;
+import org.eclipse.cdt.core.index.IIndex;
+import org.eclipse.cdt.core.index.IIndexFile;
 import org.eclipse.cdt.core.model.CModelException;
 import org.eclipse.cdt.core.model.CoreModel;
 import org.eclipse.cdt.core.model.ICElement;
 import org.eclipse.cdt.core.model.ICProject;
 import org.eclipse.cdt.core.model.ISourceRoot;
+import org.eclipse.cdt.core.model.ITranslationUnit;
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.Path;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.IPackageFragment;
@@ -82,8 +89,9 @@ public class FclCheckHandler extends AbstractHandler {
 
 	private void checkProject(IProject project) throws CoreException,
 			JavaModelException {
-		System.out.println("// ============================== //\nChecking project: "
-				+ project.getName());
+		System.out
+				.println("// ============================== //\nChecking project: "
+						+ project.getName());
 
 		// check if we have a Java project
 		if (project.isNatureEnabled("org.eclipse.jdt.core.javanature")) {
@@ -109,29 +117,69 @@ public class FclCheckHandler extends AbstractHandler {
 	}
 
 	private void walkThroughPackages(ICProject cProject) throws CModelException {
-		ISourceRoot[] packages = cProject.getSourceRoots();
-		for (ISourceRoot srcRoot : packages) {
-			System.out.println("source root: " + srcRoot.getElementName());
-			walThroughFiles(srcRoot);
 
+		try {
+			IIndex index = CCorePlugin.getIndexManager().getIndex(cProject);
+			for (IIndexFile iif : index.getAllFiles()) {
+				String aPath = iif.getLocation().getFullPath();
+				if (aPath==null) continue;
+				System.out.println("\n----->"+aPath+"\n");
+				IPath path = new Path(aPath);
+				IFile file = ResourcesPlugin.getWorkspace().getRoot()
+						.getFile(path);
+				lexTokenizer(getCFileTokenized(file));
+				
+				// ITranslationUnit tu= (ITranslationUnit)
+				// CoreModel.getDefault().create(file);
+			}
+		} catch (CoreException e) {
+			e.printStackTrace();
 		}
+
+		// ISourceRoot[] packages = cProject.getSourceRoots();
+		// for (ISourceRoot srcRoot : packages) {
+		// System.out.println("source root: " + srcRoot.getElementName());
+		// walThroughFiles(srcRoot);
+		//
+		// }
 	}
 
 	/**
 	 * Given a srcRoot this mehtod walks throuht all the files.
-	 *  
+	 * 
+	 * @param srcRoot
+	 * @throws CModelException
+	 */
+	private void lexTokenizer(StringTokenizer tkn) throws CModelException {
+			if (tkn != null) {
+				while (tkn.hasMoreElements()) {
+					String s = (String) tkn.nextElement();
+//					System.out.println("icelement buffer: " + s);
+					List<Token> tokens = Lexer.tokenize(s, true);
+					if (!tokens.isEmpty())	System.out.println("icelement buffer: " + s);
+					for (Token token : tokens) {
+						System.out.println(token.toString());
+					}
+				}
+			}
+	}
+	/**
+	 * Given a srcRoot this mehtod walks throuht all the files.
+	 * 
 	 * @param srcRoot
 	 * @throws CModelException
 	 */
 	private void walThroughFiles(ISourceRoot srcRoot) throws CModelException {
 		for (ICElement element : srcRoot.getChildren()) {
 			StringTokenizer tkn = getCFileTokenized(element);
-			while (tkn.hasMoreElements()) {
-				String s = (String) tkn.nextElement();
-				System.out.println("icelement buffer: "	+ s);
-				List<Token> tokens = Lexer.tokenize(s,true);
-				for (Token token : tokens) {
-					System.out.println(token.toString());
+			if (tkn != null) {
+				while (tkn.hasMoreElements()) {
+					String s = (String) tkn.nextElement();
+					System.out.println("icelement buffer: " + s);
+					List<Token> tokens = Lexer.tokenize(s, true);
+					for (Token token : tokens) {
+						System.out.println(token.toString());
+					}
 				}
 			}
 		}
@@ -143,21 +191,44 @@ public class FclCheckHandler extends AbstractHandler {
 	 * @param element
 	 * @return
 	 */
-	private StringTokenizer getCFileTokenized(ICElement element) {
-		System.out.println("icelement: "
-				+ element.getResource().getName());
+	private StringTokenizer getCFileTokenized(IFile element) {
+		System.out.println("icelement: " + element.getName());
 
-		IFile f = element.getUnderlyingResource().getType() == IResource.FILE ? (IFile) element
-				.getUnderlyingResource() : null;
-		String stream="";
+		String stream = "";
 		try {
-			stream = convertStreamToString(f.getContents());
+			stream = convertStreamToString(element.getContents());
 		} catch (CoreException e) {
 			showMessage("CoreException", e.getMessage());
 			e.printStackTrace();
 		}
 		StringTokenizer tkn = new StringTokenizer(stream, "\n");
 		return tkn;
+	}
+
+	/**
+	 * Returns a StringTokenizer extracted from the stream found in the C file
+	 * 
+	 * @param element
+	 * @return
+	 */
+	private StringTokenizer getCFileTokenized(ICElement element) {
+		System.out.println("icelement: " + element.getResource().getName());
+
+		IFile f = element.getUnderlyingResource().getType() == IResource.FILE ? (IFile) element
+				.getUnderlyingResource() : null;
+		if (f == null) {
+			return null;
+		} else {
+			String stream = "";
+			try {
+				stream = convertStreamToString(f.getContents());
+			} catch (CoreException e) {
+				showMessage("CoreException", e.getMessage());
+				e.printStackTrace();
+			}
+			StringTokenizer tkn = new StringTokenizer(stream, "\n");
+			return tkn;
+		}
 	}
 
 	/**
@@ -170,7 +241,9 @@ public class FclCheckHandler extends AbstractHandler {
 	 * can provide the second argument to Scanner constructor that indicates
 	 * what charset to use (e.g. "UTF-8").
 	 * 
-	 * Source: http://stackoverflow.com/questions/309424/read-convert-an-inputstream-to-a-string
+	 * Source:
+	 * http://stackoverflow.com/questions/309424/read-convert-an-inputstream
+	 * -to-a-string
 	 * 
 	 * @param is
 	 * @return
@@ -214,7 +287,7 @@ public class FclCheckHandler extends AbstractHandler {
 				str = doc.get(start, end);
 				List<Token> tokens = null;
 				if (!str.isEmpty()) {
-					tokens = Lexer.tokenize(str,false);
+					tokens = Lexer.tokenize(str, false);
 					for (Token token : tokens) {
 						System.out.println(token.toString());
 					}
