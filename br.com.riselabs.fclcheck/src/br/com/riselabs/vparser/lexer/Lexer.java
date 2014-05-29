@@ -34,6 +34,7 @@ public class Lexer {
 			if(token != null){
 				result.add(token);
 			}else{ // found an error
+				result.clear();
 				break;
 			}
 			
@@ -50,7 +51,12 @@ public class Lexer {
 			// testing for a Java macro expression line
 			} else {
 				if(result.size()>2) continue;
-				else if(result.size() == 2){
+				else if(result.size() == 1){
+					if(result.get(0).getLexeme()!=TokenType.DOUBLE_SLASH){
+						result.clear();
+						break;
+					}else continue;
+				}else if(result.size() == 2){
 					if(result.get(1).getLexeme()!=TokenType.TAG_MACRO && result.get(1).getLexeme()!=TokenType.EXP_MACRO){
 						result.clear();
 						break;

@@ -96,7 +96,7 @@ public class FclCheckHandler extends AbstractHandler {
 		// check if we have a Java project
 		if (project.isNatureEnabled("org.eclipse.jdt.core.javanature")) {
 			IJavaProject javaProject = JavaCore.create(project);
-			walkThroughPackages(javaProject);
+			walkThroughJavaPackages(javaProject);
 
 			// Check if we have C or C++ project
 		} else if (project.isNatureEnabled("org.eclipse.cdt.core.cnature")
@@ -253,7 +253,7 @@ public class FclCheckHandler extends AbstractHandler {
 		return s.hasNext() ? s.next() : "";
 	}
 
-	private void walkThroughPackages(IJavaProject javaProject)
+	private void walkThroughJavaPackages(IJavaProject javaProject)
 			throws JavaModelException {
 		IPackageFragment[] packages = javaProject.getPackageFragments();
 		for (IPackageFragment mypackage : packages) {
@@ -261,20 +261,19 @@ public class FclCheckHandler extends AbstractHandler {
 			// We will only look at the package from the source folder
 			// K_BINARY would include also included JARS, e.g. rt.jar
 			if (mypackage.getKind() == IPackageFragmentRoot.K_SOURCE) {
-				System.out.println("Package " + mypackage.getElementName());
-				checkICompilationUnitInfo(mypackage);
+				checkJavaICompilationUnitInfo(mypackage);
 			}
 		}
 	}
 
-	private void checkICompilationUnitInfo(IPackageFragment mypackage)
+	private void checkJavaICompilationUnitInfo(IPackageFragment mypackage)
 			throws JavaModelException {
 		for (ICompilationUnit unit : mypackage.getCompilationUnits()) {
-			checkCompilationUnitDetails(unit);
+			checkJavaCompilationUnitDetails(unit);
 		}
 	}
 
-	private void checkCompilationUnitDetails(ICompilationUnit unit)
+	private void checkJavaCompilationUnitDetails(ICompilationUnit unit)
 			throws JavaModelException {
 		System.out.println("Source file " + unit.getElementName());
 		Document doc = new Document(unit.getSource());
@@ -288,6 +287,7 @@ public class FclCheckHandler extends AbstractHandler {
 				List<Token> tokens = null;
 				if (!str.isEmpty()) {
 					tokens = Lexer.tokenize(str, false);
+					if(!tokens.isEmpty()) System.out.println("\nLine: "+str);
 					for (Token token : tokens) {
 						System.out.println(token.toString());
 					}
