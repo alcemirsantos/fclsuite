@@ -35,6 +35,7 @@ public class Lexer {
 				result.add(token);
 			}else{ // found an error
 				result.clear();
+				System.gc(); /* Suggesting the execution of the Garbage Collector */
 				break;
 			}
 			
@@ -44,6 +45,7 @@ public class Lexer {
 				else if(result.size() ==1){
 					if ( result.get(0).getLexeme()!=TokenType.TAG_MACRO && result.get(0).getLexeme()!=TokenType.EXP_MACRO) {
 						result.clear();
+						System.gc(); /* Suggesting the execution of the Garbage Collector */
 						break;
 					}
 				}
@@ -54,11 +56,13 @@ public class Lexer {
 				else if(result.size() == 1){
 					if(result.get(0).getLexeme()!=TokenType.DOUBLE_SLASH){
 						result.clear();
+						System.gc(); /* Suggesting the execution of the Garbage Collector */
 						break;
 					}else continue;
 				}else if(result.size() == 2){
 					if(result.get(1).getLexeme()!=TokenType.TAG_MACRO && result.get(1).getLexeme()!=TokenType.EXP_MACRO){
 						result.clear();
+						System.gc(); /* Suggesting the execution of the Garbage Collector */
 						break;
 					}
 				}
