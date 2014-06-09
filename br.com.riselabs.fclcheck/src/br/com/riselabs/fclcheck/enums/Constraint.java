@@ -9,8 +9,10 @@ public enum Constraint {
 	
 	CANNOT_COEXIST("cannot-coexist",ConstraintType.CANNOT, DependencyType.COEXIST),
 	
-	REQUIRE_EXCLUSION("",ConstraintType.REQUIRE, DependencyType.EXCLUSION),
-	REQUIRE_INCLUSION("",ConstraintType.REQUIRE, DependencyType.INCLUSION);
+	MUTUALLY_EXCLUSIVE("mutually-exclusive",ConstraintType.REQUIRE, DependencyType.EXCLUSION),
+	
+	REQUIRE_EXCLUSION("excludes",ConstraintType.REQUIRE, DependencyType.EXCLUSION),
+	REQUIRE_INCLUSION("includes",ConstraintType.REQUIRE, DependencyType.INCLUSION);
 	
 	
 	private final String value;
