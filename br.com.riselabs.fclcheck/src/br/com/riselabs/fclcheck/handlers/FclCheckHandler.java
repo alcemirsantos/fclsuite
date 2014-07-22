@@ -41,6 +41,7 @@ import org.eclipse.ui.handlers.HandlerUtil;
 
 import br.com.riselabs.vparser.lexer.Lexer;
 import br.com.riselabs.vparser.lexer.beans.Token;
+import br.com.riselabs.vparser.util.CSVUtil;
 
 public class FclCheckHandler extends AbstractHandler {
 
@@ -114,6 +115,7 @@ public class FclCheckHandler extends AbstractHandler {
 							+ "both natures: C/C++ and Java.\n"
 							+ "We expect to support additional natures in the furture.");
 		}
+		CSVUtil.writeCSV();
 	}
 
 	private void walkThroughPackages(ICProject cProject) throws CModelException {
@@ -127,7 +129,7 @@ public class FclCheckHandler extends AbstractHandler {
 				IPath path = new Path(aPath);
 				IFile file = ResourcesPlugin.getWorkspace().getRoot()
 						.getFile(path);
-				lexTokenizer(getCFileTokenized(file));
+				lexTokenizer(getCFileTokenized(file),file);
 				
 				// ITranslationUnit tu= (ITranslationUnit)
 				// CoreModel.getDefault().create(file);
@@ -150,15 +152,18 @@ public class FclCheckHandler extends AbstractHandler {
 	 * @param srcRoot
 	 * @throws CModelException
 	 */
-	private void lexTokenizer(StringTokenizer tkn) throws CModelException {
+	private void lexTokenizer(StringTokenizer tkn, IFile file) throws CModelException {
 			if (tkn != null) {
 				while (tkn.hasMoreElements()) {
 					String s = (String) tkn.nextElement();
 //					System.out.println("icelement buffer: " + s);
 					List<Token> tokens = Lexer.tokenize(s, true);
-					if (!tokens.isEmpty())	System.out.println("icelement buffer: " + s);
-					for (Token token : tokens) {
-						System.out.println(token.toString());
+					if (!tokens.isEmpty()){
+						System.out.println("icelement buffer: " + s);
+						for (Token token : tokens) {
+							System.out.println(token.toString());
+						}
+						addCSVRecord(s, file.getFullPath().toString());
 					}
 				}
 			}
@@ -287,7 +292,10 @@ public class FclCheckHandler extends AbstractHandler {
 				List<Token> tokens = null;
 				if (!str.isEmpty()) {
 					tokens = Lexer.tokenize(str, false);
-					if(!tokens.isEmpty()) System.out.println("\nLine: "+str);
+					if(!tokens.isEmpty()) {
+						System.out.println("\nLine: "+str);
+						addCSVRecord(str, unit.getResource().getFullPath().toString());
+					}
 					for (Token token : tokens) {
 						System.out.println(token.toString());
 					}
@@ -298,6 +306,17 @@ public class FclCheckHandler extends AbstractHandler {
 				e.printStackTrace();
 			}
 		}
+
+	}
+	
+	/**
+	 * add record to the .csv file with the macros found.
+	 * @param str
+	 * @param filepath
+	 */
+	private void addCSVRecord(String str, String filepath){
+		String id = String.valueOf(CSVUtil.csvRecordCount());
+		CSVUtil.addCSVRecord(new String[]{id, str, filepath});
 	}
 
 	/**
