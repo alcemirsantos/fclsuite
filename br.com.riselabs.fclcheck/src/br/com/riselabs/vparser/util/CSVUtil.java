@@ -101,9 +101,14 @@ public class CSVUtil {
 	/**
 	 * 
 	 */
-	private static void init() {
+	public static void init() {
 		workspacePath = ResourcesPlugin.getWorkspace().getRoot().getLocation().toString();
 		filepath = workspacePath+File.separator+filename;
+		if (records!=null) {
+			records.clear();
+		}else{
+			records = new ArrayList<String[]>();
+		}
 	}
 
 	public static void main(String[] args) {

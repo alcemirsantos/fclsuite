@@ -116,6 +116,7 @@ public class FclCheckHandler extends AbstractHandler {
 							+ "We expect to support additional natures in the furture.");
 		}
 		CSVUtil.writeCSV();
+		CSVUtil.init();
 	}
 
 	private void walkThroughPackages(ICProject cProject) throws CModelException {
