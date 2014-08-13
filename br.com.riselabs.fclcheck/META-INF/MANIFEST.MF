@@ -15,4 +15,5 @@ Require-Bundle: org.eclipse.ui,
  org.eclipse.ui.workbench
 Bundle-RequiredExecutionEnvironment: JavaSE-1.7
 Bundle-ClassPath: libs/javacsv2.1/javacsv.jar,
- .
+ .,
+ libs/chocosolver-0.3.6.1-jar-with-dependencies.jar

@@ -13,7 +13,6 @@ import org.eclipse.cdt.core.model.CoreModel;
 import org.eclipse.cdt.core.model.ICElement;
 import org.eclipse.cdt.core.model.ICProject;
 import org.eclipse.cdt.core.model.ISourceRoot;
-import org.eclipse.cdt.core.model.ITranslationUnit;
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
@@ -90,9 +89,8 @@ public class FclCheckHandler extends AbstractHandler {
 
 	private void checkProject(IProject project) throws CoreException,
 			JavaModelException {
-		System.out
-				.println("// ============================== //\nChecking project: "
-						+ project.getName());
+		System.out.println("// ============================== //\n"
+				+ "Checking project: " + project.getName());
 
 		// check if we have a Java project
 		if (project.isNatureEnabled("org.eclipse.jdt.core.javanature")) {
@@ -126,7 +124,7 @@ public class FclCheckHandler extends AbstractHandler {
 			for (IIndexFile iif : index.getAllFiles()) {
 				String aPath = iif.getLocation().getFullPath();
 				if (aPath==null) continue;
-				System.out.println("\n----->"+aPath+"\n");
+//				System.out.println("\n----->"+aPath+"\n");
 				IPath path = new Path(aPath);
 				IFile file = ResourcesPlugin.getWorkspace().getRoot()
 						.getFile(path);
@@ -158,12 +156,12 @@ public class FclCheckHandler extends AbstractHandler {
 				while (tkn.hasMoreElements()) {
 					String s = (String) tkn.nextElement();
 //					System.out.println("icelement buffer: " + s);
-					List<Token> tokens = Lexer.tokenize(s, true);
+					List<Token> tokens = Lexer.tokenize(s, Lexer.FileType.CPP);
 					if (!tokens.isEmpty()){
-						System.out.println("icelement buffer: " + s);
-						for (Token token : tokens) {
-							System.out.println(token.toString());
-						}
+//						System.out.println("icelement buffer: " + s);
+//						for (Token token : tokens) {
+//							System.out.println(token.toString());
+//						}
 						addCSVRecord(s, file.getFullPath().toString());
 					}
 				}
@@ -181,11 +179,11 @@ public class FclCheckHandler extends AbstractHandler {
 			if (tkn != null) {
 				while (tkn.hasMoreElements()) {
 					String s = (String) tkn.nextElement();
-					System.out.println("icelement buffer: " + s);
-					List<Token> tokens = Lexer.tokenize(s, true);
-					for (Token token : tokens) {
-						System.out.println(token.toString());
-					}
+//					System.out.println("icelement buffer: " + s);
+					List<Token> tokens = Lexer.tokenize(s, Lexer.FileType.CPP);
+//					for (Token token : tokens) {
+//						System.out.println(token.toString());
+//					}
 				}
 			}
 		}
@@ -198,7 +196,7 @@ public class FclCheckHandler extends AbstractHandler {
 	 * @return
 	 */
 	private StringTokenizer getCFileTokenized(IFile element) {
-		System.out.println("icelement: " + element.getName());
+//		System.out.println("icelement: " + element.getName());
 
 		String stream = "";
 		try {
@@ -218,7 +216,7 @@ public class FclCheckHandler extends AbstractHandler {
 	 * @return
 	 */
 	private StringTokenizer getCFileTokenized(ICElement element) {
-		System.out.println("icelement: " + element.getResource().getName());
+//		System.out.println("icelement: " + element.getResource().getName());
 
 		IFile f = element.getUnderlyingResource().getType() == IResource.FILE ? (IFile) element
 				.getUnderlyingResource() : null;
@@ -281,7 +279,7 @@ public class FclCheckHandler extends AbstractHandler {
 
 	private void checkJavaCompilationUnitDetails(ICompilationUnit unit)
 			throws JavaModelException {
-		System.out.println("Source file " + unit.getElementName());
+//		System.out.println("Source file " + unit.getElementName());
 		Document doc = new Document(unit.getSource());
 
 		String str = "";
@@ -292,14 +290,14 @@ public class FclCheckHandler extends AbstractHandler {
 				str = doc.get(start, end);
 				List<Token> tokens = null;
 				if (!str.isEmpty()) {
-					tokens = Lexer.tokenize(str, false);
+					tokens = Lexer.tokenize(str, Lexer.FileType.JAVA);
 					if(!tokens.isEmpty()) {
-						System.out.println("\nLine: "+str);
+//						System.out.println("\nLine: "+str);
 						addCSVRecord(str, unit.getResource().getFullPath().toString());
 					}
-					for (Token token : tokens) {
-						System.out.println(token.toString());
-					}
+//					for (Token token : tokens) {
+////						System.out.println(token.toString());
+//					}
 				}
 				start += end;
 			} catch (BadLocationException e) {
