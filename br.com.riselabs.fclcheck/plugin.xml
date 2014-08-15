@@ -13,6 +13,16 @@
             categoryId="br.com.riselabs.fclcheck.commands.category"
             id="br.com.riselabs.fclcheck.commands.fclcheckCommand">
       </command>
+      <category
+            id="br.com.riselabs.fclcheck.fclcheckNature.category"
+            name="FCLCheck Nature commands">
+      </category>
+      <command
+            categoryId="br.com.riselabs.fclcheck.fclcheckNature.category"
+            defaultHandler="br.com.riselabs.fclcheck.builder.AddRemoveFCLCheckNatureHandler"
+            id="br.com.riselabs.fclcheck.addRemoveFCLCheckNature"
+            name="Add/RemoveFCLCheck Nature">
+      </command>
    </extension>
    <extension
          point="org.eclipse.ui.handlers">
@@ -74,6 +84,96 @@
             </visibleWhen>
          </command>
       </menuContribution>
+      <menuContribution
+            locationURI="popup:org.eclipse.ui.projectConfigure?after=additions">
+         <command
+               commandId="br.com.riselabs.fclcheck.addRemoveFCLCheckNature"
+               label="Disable Sample builder"
+               style="push">
+            <visibleWhen
+                  checkEnabled="false">
+               <with
+                     variable="selection">
+                  <count
+                        value="1">
+                  </count>
+                  <iterate>
+                     <and>
+                        <instanceof
+                              value="org.eclipse.core.resources.IProject">
+                        </instanceof>
+                        <test
+                              property="org.eclipse.core.resources.projectNature"
+                              value="br.com.riselabs.fclcheck.fclcheckNature">
+                        </test>
+                     </and>
+                  </iterate>
+               </with>
+            </visibleWhen>
+         </command>
+         <command
+               commandId="br.com.riselabs.fclcheck.addRemoveFCLCheckNature"
+               label="Enable Sample builder"
+               style="push">
+            <visibleWhen
+                  checkEnabled="false">
+               <with
+                     variable="selection">
+                  <count
+                        value="1">
+                  </count>
+                  <iterate>
+                     <and>
+                        <instanceof
+                              value="org.eclipse.core.resources.IProject">
+                        </instanceof>
+                        <not>
+                           <test
+                                 property="org.eclipse.core.resources.projectNature"
+                                 value="br.com.riselabs.fclcheck.fclcheckNature">
+                           </test>
+                        </not>
+                     </and>
+                  </iterate>
+               </with>
+            </visibleWhen>
+         </command>
+      </menuContribution>
+   </extension>
+   <extension
+         id="fclcheckBuilder"
+         name="FCLCheck Builder"
+         point="org.eclipse.core.resources.builders">
+      <builder
+            hasNature="true">
+         <run
+               class="br.com.riselabs.fclcheck.builder.FCLCheckBuilder">
+         </run>
+      </builder>
+   </extension>
+   <extension
+         id="fclcheckNature"
+         name="FCLCheck Nature"
+         point="org.eclipse.core.resources.natures">
+      <runtime>
+         <run
+               class="br.com.riselabs.fclcheck.builder.FCLCheckNature">
+         </run>
+      </runtime>
+      <builder
+            id="br.com.riselabs.fclcheck.fclcheckBuilder">
+      </builder>
+   </extension>
+   <extension
+         id="fclcheckProblem"
+         name="FCLCheck Problem"
+         point="org.eclipse.core.resources.markers">
+      <super
+            type="org.eclipse.core.resources.problemmarker">
+      </super>
+      <persistent
+            value="true">
+      </persistent>
    </extension>
    
 </plugin>

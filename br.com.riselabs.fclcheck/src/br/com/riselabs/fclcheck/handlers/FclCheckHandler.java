@@ -38,17 +38,22 @@ import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.handlers.HandlerUtil;
 
+import br.com.riselabs.fclcheck.checkers.AbstractChecker;
+import br.com.riselabs.fclcheck.checkers.CppProjectChecker;
+import br.com.riselabs.fclcheck.checkers.JavaProjectChecker;
 import br.com.riselabs.vparser.lexer.Lexer;
 import br.com.riselabs.vparser.lexer.beans.Token;
 import br.com.riselabs.vparser.util.CSVUtil;
 
 public class FclCheckHandler extends AbstractHandler {
 
+	private AbstractChecker ac;
+
 	public Object execute(ExecutionEvent event) throws ExecutionException {
 		IProject project = getSelectedProject(event);
 
 		try {
-			checkProject(project);
+			check(project);
 		} catch (JavaModelException e) {
 			showMessage("JavaModelException", e.getMessage());
 			e.printStackTrace();
@@ -87,8 +92,11 @@ public class FclCheckHandler extends AbstractHandler {
 		return selectedProject;
 	}
 
-	private void checkProject(IProject project) throws CoreException,
-			JavaModelException {
+	private void check(IStructuredSelection selection)
+			throws JavaModelException, CoreException {
+		Object objectSelected = selection.iterator().next();
+		IProject project = ((IProject) objectSelected).getProject();
+		AbstractChecker ac;
 		System.out.println("// ============================== //\n"
 				+ "Checking project: " + project.getName());
 
@@ -97,12 +105,19 @@ public class FclCheckHandler extends AbstractHandler {
 			IJavaProject javaProject = JavaCore.create(project);
 			walkThroughJavaPackages(javaProject);
 
+			// ac = new JavaProjectChecker(selection);
+			// ac.execute();
+
 			// Check if we have C or C++ project
 		} else if (project.isNatureEnabled("org.eclipse.cdt.core.cnature")
 				|| project.isNatureEnabled("org.eclipse.cdt.core.ccnature")) {
 			ICProject cProject = (CoreModel.create(project.getWorkspace()
 					.getRoot())).getCProject(project.getName());
-			walkThroughPackages(cProject);
+			// walkThroughPackages(cProject);
+
+			ac = new CppProjectChecker(selection);
+//			ac = new CppProjectChecker(cProject);
+			ac.execute();
 
 			// In the the case the 'project' has a different nature from Java or
 			// C/C++
@@ -113,8 +128,46 @@ public class FclCheckHandler extends AbstractHandler {
 							+ "both natures: C/C++ and Java.\n"
 							+ "We expect to support additional natures in the furture.");
 		}
-		CSVUtil.writeCSV();
-		CSVUtil.init();
+		// CSVUtil.writeCSV();
+		// CSVUtil.init();
+	}
+
+	private void check(IProject project) throws CoreException,
+			JavaModelException {
+		System.out.println("// ============================== //\n"
+				+ "Checking project: " + project.getName());
+
+		AbstractChecker ac;
+
+		// check if we have a Java project
+		if (project.isNatureEnabled("org.eclipse.jdt.core.javanature")) {
+			IJavaProject javaProject = JavaCore.create(project);
+			walkThroughJavaPackages(javaProject);
+
+			// ac = new JavaProjectChecker(javaProject);
+			// ac.execute();
+
+			// Check if we have C or C++ project
+		} else if (project.isNatureEnabled("org.eclipse.cdt.core.cnature")
+				|| project.isNatureEnabled("org.eclipse.cdt.core.ccnature")) {
+			ICProject cProject = (CoreModel.create(project.getWorkspace()
+					.getRoot())).getCProject(project.getName());
+			// walkThroughPackages(cProject);
+
+			ac = new CppProjectChecker(cProject);
+			ac.execute();
+
+			// In the the case the 'project' has a different nature from Java or
+			// C/C++
+		} else {
+			showMessage(
+					"Invalide project nature",
+					"FCLcheck is only available for projects of"
+							+ "both natures: C/C++ and Java.\n"
+							+ "We expect to support additional natures in the furture.");
+		}
+		// CSVUtil.writeCSV();
+		// CSVUtil.init();
 	}
 
 	private void walkThroughPackages(ICProject cProject) throws CModelException {
@@ -123,13 +176,14 @@ public class FclCheckHandler extends AbstractHandler {
 			IIndex index = CCorePlugin.getIndexManager().getIndex(cProject);
 			for (IIndexFile iif : index.getAllFiles()) {
 				String aPath = iif.getLocation().getFullPath();
-				if (aPath==null) continue;
-//				System.out.println("\n----->"+aPath+"\n");
+				if (aPath == null)
+					continue;
+				// System.out.println("\n----->"+aPath+"\n");
 				IPath path = new Path(aPath);
 				IFile file = ResourcesPlugin.getWorkspace().getRoot()
 						.getFile(path);
-				lexTokenizer(getCFileTokenized(file),file);
-				
+				lexTokenizer(getCFileTokenized(file), file);
+
 				// ITranslationUnit tu= (ITranslationUnit)
 				// CoreModel.getDefault().create(file);
 			}
@@ -151,22 +205,24 @@ public class FclCheckHandler extends AbstractHandler {
 	 * @param srcRoot
 	 * @throws CModelException
 	 */
-	private void lexTokenizer(StringTokenizer tkn, IFile file) throws CModelException {
-			if (tkn != null) {
-				while (tkn.hasMoreElements()) {
-					String s = (String) tkn.nextElement();
-//					System.out.println("icelement buffer: " + s);
-					List<Token> tokens = Lexer.tokenize(s, Lexer.FileType.CPP);
-					if (!tokens.isEmpty()){
-//						System.out.println("icelement buffer: " + s);
-//						for (Token token : tokens) {
-//							System.out.println(token.toString());
-//						}
-						addCSVRecord(s, file.getFullPath().toString());
-					}
+	private void lexTokenizer(StringTokenizer tkn, IFile file)
+			throws CModelException {
+		if (tkn != null) {
+			while (tkn.hasMoreElements()) {
+				String s = (String) tkn.nextElement();
+				// System.out.println("icelement buffer: " + s);
+				List<Token> tokens = Lexer.tokenize(s, Lexer.FileType.CPP);
+				if (!tokens.isEmpty()) {
+					// System.out.println("icelement buffer: " + s);
+					// for (Token token : tokens) {
+					// System.out.println(token.toString());
+					// }
+					addCSVRecord(s, file.getFullPath().toString());
 				}
 			}
+		}
 	}
+
 	/**
 	 * Given a srcRoot this mehtod walks throuht all the files.
 	 * 
@@ -179,11 +235,11 @@ public class FclCheckHandler extends AbstractHandler {
 			if (tkn != null) {
 				while (tkn.hasMoreElements()) {
 					String s = (String) tkn.nextElement();
-//					System.out.println("icelement buffer: " + s);
+					// System.out.println("icelement buffer: " + s);
 					List<Token> tokens = Lexer.tokenize(s, Lexer.FileType.CPP);
-//					for (Token token : tokens) {
-//						System.out.println(token.toString());
-//					}
+					// for (Token token : tokens) {
+					// System.out.println(token.toString());
+					// }
 				}
 			}
 		}
@@ -196,7 +252,7 @@ public class FclCheckHandler extends AbstractHandler {
 	 * @return
 	 */
 	private StringTokenizer getCFileTokenized(IFile element) {
-//		System.out.println("icelement: " + element.getName());
+		// System.out.println("icelement: " + element.getName());
 
 		String stream = "";
 		try {
@@ -216,7 +272,7 @@ public class FclCheckHandler extends AbstractHandler {
 	 * @return
 	 */
 	private StringTokenizer getCFileTokenized(ICElement element) {
-//		System.out.println("icelement: " + element.getResource().getName());
+		// System.out.println("icelement: " + element.getResource().getName());
 
 		IFile f = element.getUnderlyingResource().getType() == IResource.FILE ? (IFile) element
 				.getUnderlyingResource() : null;
@@ -279,7 +335,7 @@ public class FclCheckHandler extends AbstractHandler {
 
 	private void checkJavaCompilationUnitDetails(ICompilationUnit unit)
 			throws JavaModelException {
-//		System.out.println("Source file " + unit.getElementName());
+		// System.out.println("Source file " + unit.getElementName());
 		Document doc = new Document(unit.getSource());
 
 		String str = "";
@@ -291,13 +347,14 @@ public class FclCheckHandler extends AbstractHandler {
 				List<Token> tokens = null;
 				if (!str.isEmpty()) {
 					tokens = Lexer.tokenize(str, Lexer.FileType.JAVA);
-					if(!tokens.isEmpty()) {
-//						System.out.println("\nLine: "+str);
-						addCSVRecord(str, unit.getResource().getFullPath().toString());
+					if (!tokens.isEmpty()) {
+						// System.out.println("\nLine: "+str);
+						addCSVRecord(str, unit.getResource().getFullPath()
+								.toString());
 					}
-//					for (Token token : tokens) {
-////						System.out.println(token.toString());
-//					}
+					// for (Token token : tokens) {
+					// // System.out.println(token.toString());
+					// }
 				}
 				start += end;
 			} catch (BadLocationException e) {
@@ -307,20 +364,22 @@ public class FclCheckHandler extends AbstractHandler {
 		}
 
 	}
-	
+
 	/**
 	 * add record to the .csv file with the macros found.
+	 * 
 	 * @param str
 	 * @param filepath
 	 */
-	private void addCSVRecord(String str, String filepath){
+	private void addCSVRecord(String str, String filepath) {
 		String id = String.valueOf(CSVUtil.csvRecordCount());
-		CSVUtil.addCSVRecord(new String[]{id, str, filepath});
+		CSVUtil.addCSVRecord(new String[] { id, str, filepath });
 	}
 
 	/**
-	 * Mosta um diálogo de informação com a <code>String</code> informada. os
-	 * parâmetros se referem ao título do diálogo e a mensagem a ser informada.
+	 * Mosta um di��logo de informa����o com a <code>String</code> informada. os
+	 * par��metros se referem ao t��tulo do di��logo e a mensagem a ser
+	 * informada.
 	 * 
 	 * @param title
 	 * @param message

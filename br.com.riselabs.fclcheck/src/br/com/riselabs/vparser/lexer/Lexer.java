@@ -263,7 +263,7 @@ public class Lexer {
 					buffer += c;
 					status = 25;
 				} else {
-					// error: esperava espaço branco, n ou d
+					// error: esperava espa��o branco, n ou d
 					errors.add(new LexerError(lookahead, "' ', 'n', or 'd'", c,
 							LexerErrorType.WrongCharacter));
 					rollback();
@@ -370,7 +370,7 @@ public class Lexer {
 				} else if (compare(c, Symbols.WhiteSpace)) {
 					status = 27;
 				} else {
-					// error: esperava espaço, n ou d
+					// error: esperava espa��o, n ou d
 					errors.add(new LexerError(lookahead, "' ', 'n', or 'd'", c,
 							LexerErrorType.WrongCharacter));
 					rollback();
@@ -498,8 +498,8 @@ public class Lexer {
 					buffer += c;
 				}
 				else{
-					// error: expected <=> 
-					errors.add(new LexerError(lookahead, "'='", c, LexerErrorType.WrongCharacter));
+					// error: expected <=> or =>
+					errors.add(new LexerError(lookahead, "'>'", c, LexerErrorType.WrongCharacter));
 					rollback();
 					return null;
 				}
@@ -536,7 +536,7 @@ public class Lexer {
 				|| buffer.equals("#elifdef") || buffer.equals("#elifndef"))
 			return TokenType.TAG_MACRO;
 		else
-			// TODO error: não devia ter outro
+			// TODO error: n��o devia ter outro
 			errors.add(new LexerError(lexemeStartPoint,
 					"'#if', '#elif', '#ifdef', "
 							+ "'#ifndef', '#elifdef' or '#elifndef' ", c,
