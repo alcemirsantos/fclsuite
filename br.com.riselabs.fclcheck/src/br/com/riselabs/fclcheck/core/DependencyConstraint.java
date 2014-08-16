@@ -9,7 +9,7 @@ import java.util.Set;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.CoreException;
 
-import br.com.riselabs.fclcheck.dependencies.Dependency;
+import br.com.riselabs.fclcheck.core.inconsistencies.AbstractInconsistency;
 import br.com.riselabs.fclcheck.enums.Constraint;
 import br.com.riselabs.fclcheck.enums.ConstraintType;
 
@@ -26,7 +26,7 @@ public class DependencyConstraint implements Comparable<DependencyConstraint> {
 	}
 
 	public List<ArchitecturalDrift> validate(String className, final Map<String, String> modules, Set<String> projectClasses,
-			Collection<Dependency> dependencies, IProject project) throws CoreException {
+			Collection<AbstractInconsistency> dependencies, IProject project) throws CoreException {
 		switch (this.constraint.getConstraintType()) {
 		case CANNOT:
 			return this.validateCannot(className, targetFeature, this.constraint.getDependencyType().getDependencyClass(), modules,
@@ -43,11 +43,11 @@ public class DependencyConstraint implements Comparable<DependencyConstraint> {
 	 * cannot
 	 */
 	private List<ArchitecturalDrift> validateCannot(String className, String moduleDescriptionB,
-			Class<? extends Dependency> dependencyClass, Map<String, String> modules, Set<String> projectClasses,
-			Collection<Dependency> dependencies, IProject project) {
+			Class<? extends AbstractInconsistency> dependencyClass, Map<String, String> modules, Set<String> projectClasses,
+			Collection<AbstractInconsistency> dependencies, IProject project) {
 		List<ArchitecturalDrift> architecturalDrifts = new LinkedList<ArchitecturalDrift>();
 		/* For each dependency */
-		for (Dependency d : dependencies) {
+		for (AbstractInconsistency d : dependencies) {
 			if (dependencyClass.isAssignableFrom(d.getClass())) {
 				if (d.getClassNameB().equals(d.getClassNameA())) {
 					continue;
@@ -69,11 +69,11 @@ public class DependencyConstraint implements Comparable<DependencyConstraint> {
 	 * validate require constraint
 	 */
 	private List<ArchitecturalDrift> validateRequire(String className, String moduleDescriptionB,
-			Class<? extends Dependency> dependencyClass, Map<String, String> modules, Set<String> projectClasses,
-			Collection<Dependency> dependencies, IProject project) {
+			Class<? extends AbstractInconsistency> dependencyClass, Map<String, String> modules, Set<String> projectClasses,
+			Collection<AbstractInconsistency> dependencies, IProject project) {
 		List<ArchitecturalDrift> architecturalDrifts = new LinkedList<ArchitecturalDrift>();
 		/* For each dependency */
-		for (Dependency d : dependencies) {
+		for (AbstractInconsistency d : dependencies) {
 			if (dependencyClass.isAssignableFrom(d.getClass())) {
 				if (d.getClassNameB().equals(d.getClassNameA())) {
 					continue;
@@ -142,14 +142,14 @@ public class DependencyConstraint implements Comparable<DependencyConstraint> {
 	}
 
 	public static class DivergenceArchitecturalDrift extends ArchitecturalDrift {
-		private final Dependency forbiddenDependency;
+		private final AbstractInconsistency forbiddenDependency;
 
-		public DivergenceArchitecturalDrift(DependencyConstraint violatedConstraint, Dependency forbiddenDependency) {
+		public DivergenceArchitecturalDrift(DependencyConstraint violatedConstraint, AbstractInconsistency forbiddenDependency) {
 			super(violatedConstraint);
 			this.forbiddenDependency = forbiddenDependency;
 		}
 
-		public final Dependency getForbiddenDependency() {
+		public final AbstractInconsistency getForbiddenDependency() {
 			return this.forbiddenDependency;
 		}
 

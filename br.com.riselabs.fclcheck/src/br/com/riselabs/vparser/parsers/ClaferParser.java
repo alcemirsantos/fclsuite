@@ -1,7 +1,7 @@
 /**
  * 
  */
-package br.com.riselabs.fclcheck.standalone.cfrparser;
+package br.com.riselabs.vparser.parsers;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;

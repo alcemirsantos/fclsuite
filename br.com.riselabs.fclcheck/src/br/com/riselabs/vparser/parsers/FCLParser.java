@@ -1,4 +1,4 @@
-package br.com.riselabs.vparser;
+package br.com.riselabs.vparser.parsers;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -199,7 +199,7 @@ public class FCLParser {
 	public static void main(String[] args) {
 		// try {
 		final String filePath = System.getProperty("user.home")
-				+ "/Documents/workspace/fclsuite-aux/constraints-sample.fcl";
+				+ "/Documents/workspace/fclsuite/fclsuite-aux/constraints-sample.fcl";
 
 		File f = new File(filePath);
 		System.out.println(filePath + "\n" + f.exists());

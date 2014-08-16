@@ -1,16 +1,16 @@
-package br.com.riselabs.fclcheck.dependencies;
+package br.com.riselabs.fclcheck.core.inconsistencies;
 
 import java.util.Properties;
 
 import br.com.riselabs.fclcheck.enums.ConstraintType;
 import br.com.riselabs.fclcheck.enums.ViolationProperties;
 
-public abstract class Dependency {
+public abstract class AbstractInconsistency {
 	protected final String sourceFeature;
 	protected final String targetFeature;
 	protected final Integer lineNumber;
 
-	protected Dependency(String sourceFeature, String targetFeature,
+	protected AbstractInconsistency(String sourceFeature, String targetFeature,
 			Integer lineNumber) {
 		super();
 		this.sourceFeature = sourceFeature;
@@ -40,7 +40,7 @@ public abstract class Dependency {
 		return props;
 	}
 
-	public final boolean equals(Dependency other) {
+	public final boolean equals(AbstractInconsistency other) {
 		return (this.getType().equals(other.getType()) && this.targetFeature
 				.equals(other.targetFeature));
 	}

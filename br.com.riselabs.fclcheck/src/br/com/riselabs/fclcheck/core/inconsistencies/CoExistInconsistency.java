@@ -1,10 +1,10 @@
-package br.com.riselabs.fclcheck.dependencies;
+package br.com.riselabs.fclcheck.core.inconsistencies;
 
 import br.com.riselabs.fclcheck.enums.ConstraintType;
 
-public class CoExistDependency extends Dependency {
+public class CoExistInconsistency extends AbstractInconsistency {
 
-	public CoExistDependency(String classNameA, String classNameB,
+	public CoExistInconsistency(String classNameA, String classNameB,
 			Integer lineNumberA) {
 		super(classNameA, classNameB, lineNumberA);
 	}

@@ -17,15 +17,15 @@ public class ConsistencyErrorHandler {
 				e.getLineNumber(), severity);
 	}
 
-	public void error(ConsistencyException exception) throws SAXException {
+	public void error(ConsistencyException exception)  {
 		addMarker(exception, IMarker.SEVERITY_ERROR);
 	}
 
-	public void fatalError(ConsistencyException exception) throws SAXException {
+	public void fatalError(ConsistencyException exception) {
 		addMarker(exception, IMarker.SEVERITY_ERROR);
 	}
 
-	public void warning(ConsistencyException exception) throws SAXException {
+	public void warning(ConsistencyException exception) {
 		addMarker(exception, IMarker.SEVERITY_WARNING);
 	}
 

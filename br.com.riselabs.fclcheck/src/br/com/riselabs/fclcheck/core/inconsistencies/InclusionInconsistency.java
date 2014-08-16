@@ -1,10 +1,10 @@
-package br.com.riselabs.fclcheck.dependencies;
+package br.com.riselabs.fclcheck.core.inconsistencies;
 
 import br.com.riselabs.fclcheck.enums.ConstraintType;
 
-public class InclusionDependency extends Dependency {
+public class InclusionInconsistency extends AbstractInconsistency {
 
-	public InclusionDependency(String classNameA, String classNameB,
+	public InclusionInconsistency(String classNameA, String classNameB,
 			Integer lineNumberA) {
 		super(classNameA, classNameB, lineNumberA);
 	}

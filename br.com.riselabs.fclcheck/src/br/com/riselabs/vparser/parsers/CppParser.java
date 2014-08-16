@@ -10,7 +10,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import solver.search.loop.Reporting;
 import br.com.riselabs.fclcheck.builder.ConsistencyErrorHandler;
+import br.com.riselabs.fclcheck.builder.ConsistencyException;
 import br.com.riselabs.vparser.lexer.Lexer;
 import br.com.riselabs.vparser.lexer.beans.Token;
 import br.com.riselabs.vparser.lexer.enums.LexerErrorType;
@@ -20,13 +22,13 @@ public class CppParser implements SourceCodeParser {
 	@Override
 	public void parse(InputStream input, ConsistencyErrorHandler reporter) {
 		Map<Integer, String> inputLines = getLinesMappingFrom(input);
-		printMap(inputLines);
+//		printMap(inputLines);
 
-		check(inputLines);
+		check(inputLines, reporter);
 
 	}
 
-	private void check(Map<Integer, String> inputLines) {
+	private void check(Map<Integer, String> inputLines, ConsistencyErrorHandler reporter) {
 		for (int i = 1; i <= inputLines.size(); i++) {
 			List<Token> tokens = Lexer.tokenize(inputLines.get(i),
 					Lexer.FileType.CPP);
@@ -35,11 +37,12 @@ public class CppParser implements SourceCodeParser {
 				continue;
 			else{
 				// TODO check tokens
-				System.out.println(">>> found tokens at line "+i+": ");
+				System.out.print(">>> found tokens at line "+i+": ");
 				for (Token token : tokens) {
 					System.out.print(token.getValue()+" ");
 				}
-				
+				reporter.warning(new ConsistencyException("Variability point found.", i));
+				System.out.println();
 			}
 		}
 	}

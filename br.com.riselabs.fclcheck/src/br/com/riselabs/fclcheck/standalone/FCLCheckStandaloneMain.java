@@ -18,8 +18,7 @@ import java.util.Map.Entry;
 import br.com.riselabs.vparser.lexer.Lexer;
 import br.com.riselabs.vparser.lexer.beans.Token;
 import br.com.riselabs.vparser.lexer.enums.TokenType;
-
-import br.com.riselabs.fclcheck.standalone.cfrparser.ClaferParser;
+import br.com.riselabs.vparser.parsers.ClaferParser;
 /**
  * @author Alcemir Santos
  * 
@@ -174,7 +173,7 @@ public class FCLCheckStandaloneMain {
 
 	public static FCLConstraint translateToFCLConstraint(List<Token> tokens,
 			int binOpPos) {
-		FCLDependency dependency = null;
+		FCLDependencyType dependency = null;
 		String left = "";
 		String right = "";
 
@@ -184,10 +183,10 @@ public class FCLCheckStandaloneMain {
 			
 			if (tokens.get(binOpPos + 1).getValue().equals("!")) {
 				right += getExpression(tokens, binOpPos+2, tokens.size());//tokens.get(binOpPos + 2).getValue();
-				dependency = FCLDependency.EXCLUDES;
+				dependency = FCLDependencyType.EXCLUDES;
 			} else {
 				right += getExpression(tokens, binOpPos+1, tokens.size());//tokens.get(binOpPos + 1).getValue();
-				dependency = FCLDependency.INCLUDES;
+				dependency = FCLDependencyType.INCLUDES;
 			}
 			break;
 		case "&&":
@@ -197,10 +196,10 @@ public class FCLCheckStandaloneMain {
 
 				if (tokens.get(binOpPos + 1).getValue() == "!") {
 					right += tokens.get(binOpPos + 2).getValue();
-					dependency = FCLDependency.EXCLUDES;
+					dependency = FCLDependencyType.EXCLUDES;
 				} else {
 					right += tokens.get(binOpPos + 1).getValue();
-					dependency = FCLDependency.INCLUDES;
+					dependency = FCLDependencyType.INCLUDES;
 				}
 
 			} else {
@@ -208,33 +207,33 @@ public class FCLCheckStandaloneMain {
 
 				if (tokens.get(binOpPos + 1).getValue() == "!") {
 					right += tokens.get(binOpPos + 2).getValue();
-					dependency = FCLDependency.EXCLUDES;
+					dependency = FCLDependencyType.EXCLUDES;
 				} else {
 					right += tokens.get(binOpPos + 1).getValue();
-					dependency = FCLDependency.INCLUDES;
+					dependency = FCLDependencyType.INCLUDES;
 				}
 			}
 			break;
 		case "||":
 			if (tokens.get(binOpPos + 1).getValue() == "!") {
 				if (tokens.get(0).getValue() == "!")
-					dependency = FCLDependency.EXCLUDES;
+					dependency = FCLDependencyType.EXCLUDES;
 				else
 					return new FCLConstraint(tokens.get(binOpPos + 2)
-							.getValue(), FCLDependency.INCLUDES, tokens.get(0)
+							.getValue(), FCLDependencyType.INCLUDES, tokens.get(0)
 							.getValue());
 			} else if (tokens.get(binOpPos + 1).getValue() != "!") {
 				if (tokens.get(0).getValue() == "!")
-					dependency = FCLDependency.INCLUDES;
+					dependency = FCLDependencyType.INCLUDES;
 				else
-					dependency = FCLDependency.MUTUALLY_EXCLUSIVE;
+					dependency = FCLDependencyType.MUTUALLY_EXCLUSIVE;
 			}
 			break;
 		case "<=>":
 			// TODO find the cases
 			left += getExpression(tokens, 0, binOpPos);
 			right += getExpression(tokens, binOpPos+1, tokens.size());
-			dependency = FCLDependency.IFF;
+			dependency = FCLDependencyType.IFF;
 			break;
 		default:
 			System.err.println("none of the options matched!");

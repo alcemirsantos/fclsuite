@@ -13,9 +13,9 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 
-import br.com.riselabs.fclcheck.standalone.cfrparser.ClaferParser;
 import br.com.riselabs.vparser.lexer.Lexer;
 import br.com.riselabs.vparser.lexer.beans.Token;
+import br.com.riselabs.vparser.parsers.ClaferParser;
 
 /**
  * @author Alcemir Santos

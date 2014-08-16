@@ -3,7 +3,7 @@
  */
 package br.com.riselabs.fclcheck.standalone;
 
-import br.com.riselabs.fclcheck.standalone.FCLDependency;
+import br.com.riselabs.fclcheck.standalone.FCLDependencyType;
 
 /**
  * @author  Alcemir Santos
@@ -11,7 +11,7 @@ import br.com.riselabs.fclcheck.standalone.FCLDependency;
 public class FCLConstraint {
 	private String leftTerm;
 	private String rightTerm;
-	private FCLDependency type;
+	private FCLDependencyType type;
 
 	/**
 	 * @param right 
@@ -19,7 +19,7 @@ public class FCLConstraint {
 	 * @param left 
 	 * 
 	 */
-	public FCLConstraint(String left, FCLDependency dependency, String right) {
+	public FCLConstraint(String left, FCLDependencyType dependency, String right) {
 		this.leftTerm = left;
 		this.rightTerm = right;
 		this.type = dependency;
@@ -56,14 +56,14 @@ public class FCLConstraint {
 	/**
 	 * @return the type
 	 */
-	public FCLDependency getType() {
+	public FCLDependencyType getType() {
 		return type;
 	}
 
 	/**
 	 * @param type the type to set
 	 */
-	public void setType(FCLDependency type) {
+	public void setType(FCLDependencyType type) {
 		this.type = type;
 	}
 	
