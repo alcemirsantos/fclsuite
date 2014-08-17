@@ -7,6 +7,7 @@ public class FCLCheck extends AbstractUIPlugin {
 	// The plug-in ID
 	public static final String PLUGIN_ID = "br.com.riselabs.fclcheck"; //$NON-NLS-1$
 	public static final String PLUGIN_NAME = "FCLCheck";
+	
 
 	private static FCLCheck instance;
 

@@ -1,7 +1,6 @@
 package br.com.riselabs.vparser.parsers;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -23,8 +22,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Scanner;
 
+import org.eclipse.core.resources.IFile;
+
 import br.com.riselabs.fclcheck.core.DependencyConstraint;
 import br.com.riselabs.fclcheck.enums.Constraint;
+import br.com.riselabs.fclcheck.exceptions.PluginException;
+import br.com.riselabs.fclcheck.standalone.FCLConstraint;
 import br.com.riselabs.vparser.exception.ParseException;
 
 /**
@@ -32,7 +35,7 @@ import br.com.riselabs.vparser.exception.ParseException;
  * @author Alcemir Santos
  * 
  */
-public class FCLParser {
+public class FCLParser implements IConstraintsSourceParser {
 
 	private static final boolean DEBUG = false;
 	final static Charset ENCODING = StandardCharsets.UTF_8;
@@ -245,6 +248,12 @@ public class FCLParser {
 
 	private static void log(Object aMsg) {
 		System.out.println(String.valueOf(aMsg));
+	}
+
+	@Override
+	public List<FCLConstraint> parse(IFile file) throws PluginException {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

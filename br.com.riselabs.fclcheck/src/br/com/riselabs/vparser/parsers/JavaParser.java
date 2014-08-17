@@ -2,17 +2,32 @@ package br.com.riselabs.vparser.parsers;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.List;
 
-import br.com.riselabs.fclcheck.builder.ConsistencyErrorHandler;
+import org.eclipse.core.resources.IFile;
+import org.eclipse.core.runtime.CoreException;
 
-public class JavaParser implements SourceCodeParser {
+import br.com.riselabs.fclcheck.exceptions.PluginException;
+import br.com.riselabs.vparser.beans.CCVariationPoint;
+
+public class JavaParser implements ISourceCodeParser {
 
 	@Override
-	public void parse(InputStream input, ConsistencyErrorHandler reporter) {
-		// TODO Auto-generated method stub
-		BufferedReader reader = new BufferedReader(new InputStreamReader(input));
+	public List<CCVariationPoint> parse(IFile input) throws PluginException {
+		// TODO parse input file to find variation points.
+		BufferedReader reader;
+		try {
+			reader = new BufferedReader(new InputStreamReader(input.getContents()));
+		} catch (CoreException e) {
+			throw new PluginException(
+					"This method fails. Reasons include: \n"
+							+ "This resource does not exist.\n"
+							+ "This resource is not local. \n"
+							+ "The file-system resource is not a file. \n"
+							+ "The workspace is not in sync with the corresponding "
+							+ "location in the local file system.");
+		}
 		StringBuilder out = new StringBuilder();
 		String line;
 		try {
@@ -25,6 +40,7 @@ public class JavaParser implements SourceCodeParser {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		return null;
 	}
 
 

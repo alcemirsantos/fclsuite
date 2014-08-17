@@ -4,47 +4,60 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import solver.search.loop.Reporting;
-import br.com.riselabs.fclcheck.builder.ConsistencyErrorHandler;
-import br.com.riselabs.fclcheck.builder.ConsistencyException;
+import org.eclipse.core.resources.IFile;
+import org.eclipse.core.runtime.CoreException;
+
+import br.com.riselabs.fclcheck.exceptions.PluginException;
+import br.com.riselabs.vparser.beans.CCVariationPoint;
 import br.com.riselabs.vparser.lexer.Lexer;
 import br.com.riselabs.vparser.lexer.beans.Token;
-import br.com.riselabs.vparser.lexer.enums.LexerErrorType;
 
-public class CppParser implements SourceCodeParser {
+public class CppParser implements ISourceCodeParser {
 
 	@Override
-	public void parse(InputStream input, ConsistencyErrorHandler reporter) {
-		Map<Integer, String> inputLines = getLinesMappingFrom(input);
+	public List<CCVariationPoint> parse(IFile file) throws PluginException {
+		Map<Integer, String> inputLines;
+		try {
+			inputLines = getLinesMappingFrom(file.getContents());
+		} catch (CoreException e) {
+			throw new PluginException(
+					"This method fails. Reasons include: \n"
+							+ "This resource does not exist.\n"
+							+ "This resource is not local. \n"
+							+ "The file-system resource is not a file. \n"
+							+ "The workspace is not in sync with the corresponding "
+							+ "location in the local file system.");
+		}
 //		printMap(inputLines);
 
-		check(inputLines, reporter);
+		Map<Integer, List<Token>> map = getVariationPointsTokenized(inputLines);
 
+		List<CCVariationPoint> list = new ArrayList<>();
+		for (Entry<Integer, List<Token>> e: map.entrySet()) {
+			list.add(new CCVariationPoint(file.getLocation(), e.getKey(), e.getValue()));
+		}
+		
+		return list; 
 	}
 
-	private void check(Map<Integer, String> inputLines, ConsistencyErrorHandler reporter) {
+	private Map<Integer, List<Token>> getVariationPointsTokenized(Map<Integer, String> inputLines) {
+		HashMap<Integer, List<Token>> map = new HashMap<>();
 		for (int i = 1; i <= inputLines.size(); i++) {
 			List<Token> tokens = Lexer.tokenize(inputLines.get(i),
 					Lexer.FileType.CPP);
-			
 			if (tokens.isEmpty() || tokens == null)
 				continue;
 			else{
-				// TODO check tokens
-				System.out.print(">>> found tokens at line "+i+": ");
-				for (Token token : tokens) {
-					System.out.print(token.getValue()+" ");
-				}
-				reporter.warning(new ConsistencyException("Variability point found.", i));
-				System.out.println();
+				map.put(i, tokens); 
 			}
 		}
+		return map;
 	}
 
 	private void printMap(Map<Integer, String> inputLines) {

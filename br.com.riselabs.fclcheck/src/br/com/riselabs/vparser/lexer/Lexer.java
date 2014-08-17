@@ -530,13 +530,13 @@ public class Lexer {
 	 * @return the type of the token.
 	 */
 	private static TokenType chooseTokenType(String buffer) {
-		if (buffer.equals("#elif") || buffer.equals("#if"))
+		if (buffer.equals("#elif") || buffer.equals("#if")|| buffer.equals("defined"))
 			return TokenType.EXP_MACRO;
 		else if (buffer.equals("#ifdef") || buffer.equals("#ifndef")
 				|| buffer.equals("#elifdef") || buffer.equals("#elifndef"))
 			return TokenType.TAG_MACRO;
 		else
-			// TODO error: n��o devia ter outro
+			// TODO error: não devia ter outro
 			errors.add(new LexerError(lexemeStartPoint,
 					"'#if', '#elif', '#ifdef', "
 							+ "'#ifndef', '#elifdef' or '#elifndef' ", c,

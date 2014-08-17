@@ -47,7 +47,7 @@
          <menu
                label="FCL Suite"
                mnemonic="M"
-               id="br.com.riselabs.fclcheck.menus.dclsuiteMenu">
+               id="br.com.riselabs.fclcheck.menus.fclsuiteMenu">
             <command
                   commandId="br.com.riselabs.fclcheck.commands.fclcheckCommand"
                   mnemonic="S"
@@ -58,7 +58,7 @@
       <menuContribution
             locationURI="toolbar:org.eclipse.ui.main.toolbar?after=additions">
          <toolbar
-               id="br.com.riselabs.fclcheck.toolbars.dclsuiteToolbar">
+               id="br.com.riselabs.fclcheck.toolbars.fclsuiteToolbar">
             <command
                   commandId="br.com.riselabs.fclcheck.commands.fclcheckCommand"
                   icon="icons/fclicon16.png"
