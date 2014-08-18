@@ -175,5 +175,25 @@
             value="true">
       </persistent>
    </extension>
+   <extension
+         point="org.eclipse.help.contexts">
+      <contexts
+            file="contexts.xml">
+      </contexts>
+   </extension>
+   <extension
+         point="org.eclipse.ui.views">
+      <category
+            id="br.com.riselabs.fclcheck"
+            name="FCL Suite">
+      </category>
+      <view
+            category="br.com.riselabs.fclcheck"
+            class="br.com.riselabs.fclcheck.views.InconsistenciesView"
+            icon="icons/fclicon16.png"
+            id="br.com.riselabs.fclcheck.views.InconsistenciesView"
+            name="Inconsistencies View">
+      </view>
+   </extension>
    
 </plugin>

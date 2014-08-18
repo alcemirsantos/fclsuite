@@ -12,7 +12,8 @@ Require-Bundle: org.eclipse.ui,
  org.eclipse.jface.text;bundle-version="3.8.100",
  org.eclipse.cdt.core;bundle-version="5.6.0",
  org.junit,
- org.eclipse.ui.workbench
+ org.eclipse.ui.workbench,
+ org.eclipse.ui.ide
 Bundle-RequiredExecutionEnvironment: JavaSE-1.7
 Bundle-ClassPath: libs/javacsv2.1/javacsv.jar,
  .,

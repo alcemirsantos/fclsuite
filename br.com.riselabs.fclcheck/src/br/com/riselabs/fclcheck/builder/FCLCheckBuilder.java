@@ -1,67 +1,46 @@
 package br.com.riselabs.fclcheck.builder;
 
-import java.io.InputStream;
-import java.io.Reader;
-import java.net.URI;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.eclipse.core.resources.IContainer;
+import javax.print.attribute.standard.Severity;
+
 import org.eclipse.core.resources.IFile;
-import org.eclipse.core.resources.IFileState;
 import org.eclipse.core.resources.IMarker;
-import org.eclipse.core.resources.IPathVariableManager;
 import org.eclipse.core.resources.IProject;
-import org.eclipse.core.resources.IProjectDescription;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IResourceDelta;
 import org.eclipse.core.resources.IResourceDeltaVisitor;
-import org.eclipse.core.resources.IResourceProxy;
-import org.eclipse.core.resources.IResourceProxyVisitor;
 import org.eclipse.core.resources.IResourceVisitor;
-import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.IncrementalProjectBuilder;
-import org.eclipse.core.resources.ResourceAttributes;
 import org.eclipse.core.runtime.CoreException;
-import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
-import org.eclipse.core.runtime.QualifiedName;
-import org.eclipse.core.runtime.content.IContentDescription;
-import org.eclipse.core.runtime.jobs.ISchedulingRule;
+import org.eclipse.ui.IViewPart;
+import org.eclipse.ui.IWorkbenchPage;
+import org.eclipse.ui.PartInitException;
+import org.eclipse.ui.PlatformUI;
 
+import br.com.riselabs.fclcheck.FCLCheck;
 import br.com.riselabs.fclcheck.exceptions.PluginException;
+import br.com.riselabs.fclcheck.jobs.InconsistenciesViewUpdateJob;
 import br.com.riselabs.fclcheck.standalone.FCLConstraint;
+import br.com.riselabs.fclcheck.views.InconsistenciesView;
 import br.com.riselabs.vparser.beans.CCVariationPoint;
 import br.com.riselabs.vparser.lexer.beans.Token;
 import br.com.riselabs.vparser.lexer.enums.TokenType;
 import br.com.riselabs.vparser.parsers.ConstraintsParser;
 import br.com.riselabs.vparser.parsers.CppParser;
 import br.com.riselabs.vparser.parsers.FCLParser;
-import br.com.riselabs.vparser.parsers.IParser;
 import br.com.riselabs.vparser.parsers.JavaParser;
-import br.com.riselabs.vparser.parsers.ISourceCodeParser;
 
 public class FCLCheckBuilder extends IncrementalProjectBuilder {
 
 	public static final String BUILDER_ID = "br.com.riselabs.fclcheck.fclcheckBuilder";
 
-	private static final String MARKER_TYPE = "br.com.riselabs.fclcheck.fclcheckProblem";
-	private List<FCLConstraint> vmc = new LinkedList<>();
+	public static final String MARKER_TYPE = "br.com.riselabs.fclcheck.fclcheckProblem";
 
-	static void addMarker(IFile file, String message, int lineNumber,
-			int severity) {
-		try {
-			IMarker marker = file.createMarker(MARKER_TYPE);
-			marker.setAttribute(IMarker.MESSAGE, message);
-			marker.setAttribute(IMarker.SEVERITY, severity);
-			if (lineNumber == -1) {
-				lineNumber = 1;
-			}
-			marker.setAttribute(IMarker.LINE_NUMBER, lineNumber);
-		} catch (CoreException e) {
-		}
-	}
+	private List<FCLConstraint> vmc = new LinkedList<>();
 
 	/*
 	 * (non-Javadoc)
@@ -72,6 +51,22 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 	protected IProject[] build(int kind, Map args, IProgressMonitor monitor)
 			throws CoreException {
 
+		loadVariabilityModelConstraints();
+
+		if (kind == FULL_BUILD) {
+			fullBuild(monitor);
+		} else {
+			IResourceDelta delta = getDelta(getProject());
+			if (delta == null) {
+				fullBuild(monitor);
+			} else {
+				incrementalBuild(delta, monitor);
+			}
+		}
+		return null;
+	}
+
+	private void loadVariabilityModelConstraints() {
 		try {
 			switch (getConstraintsFile().getFileExtension()) {
 			case "fcl":
@@ -85,21 +80,37 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 						+ getConstraintsFile().getFileExtension() + " yet.");
 			}
 		} catch (PluginException e) {
-			// TODO Auto-generated catch block
+			try {
+				String message = "A constraints file is missing.";
+				addErrorMarker(getProject(), message);
+				throw new PluginException(message);
+			} catch (CoreException e1) {
+				e1.printStackTrace();
+			} catch (PluginException e1) {
+				e1.printStackTrace();
+			}
 			e.printStackTrace();
 		}
+	}
 
-		if (kind == FULL_BUILD) {
-			fullBuild(monitor);
-		} else {
-			IResourceDelta delta = getDelta(getProject());
-			if (delta == null) {
-				fullBuild(monitor);
-			} else {
-				incrementalBuild(delta, monitor);
+	void addMarker(IFile file, String message, int lineNumber, int severity) {
+		try {
+			IMarker marker = file.createMarker(MARKER_TYPE);
+			marker.setAttribute(IMarker.MESSAGE, message);
+			marker.setAttribute(IMarker.SEVERITY, severity);
+			if (lineNumber == -1) {
+				lineNumber = 1;
 			}
+			marker.setAttribute(IMarker.LINE_NUMBER, lineNumber);
+		} catch (CoreException e) {
 		}
-		return null;
+	}
+
+	private void addErrorMarker(IProject project, String message)
+			throws CoreException {
+		IMarker marker = project.createMarker(MARKER_TYPE);
+		marker.setAttribute(IMarker.SEVERITY, Severity.ERROR.getValue());
+		marker.setAttribute(IMarker.MESSAGE, message);
 	}
 
 	protected void clean(IProgressMonitor monitor) throws CoreException {
@@ -163,11 +174,15 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 					}
 				}
 			}
+
+			InconsistenciesView.sync();
 		}
 
 	}
 
 	private boolean isSourceFile(String fileExtension) {
+		if (fileExtension == null)
+			return false;
 		switch (fileExtension) {
 		case "java":
 		case "c":
@@ -255,4 +270,32 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 			return true;
 		}
 	}
+
+	class ConsistencyErrorHandler {
+
+		private IFile file;
+
+		public ConsistencyErrorHandler(IFile file) {
+			this.file = file;
+		}
+
+		public void error(ConsistencyException exception) {
+			addMarker(exception, IMarker.SEVERITY_ERROR);
+		}
+
+		public void fatalError(ConsistencyException exception) {
+			addMarker(exception, IMarker.SEVERITY_ERROR);
+		}
+
+		public void warning(ConsistencyException exception) {
+			addMarker(exception, IMarker.SEVERITY_WARNING);
+		}
+
+		private void addMarker(ConsistencyException e, int severity) {
+			FCLCheckBuilder.this.addMarker(file, e.getMessage(),
+					e.getLineNumber(), severity);
+		}
+
+	}
+
 }

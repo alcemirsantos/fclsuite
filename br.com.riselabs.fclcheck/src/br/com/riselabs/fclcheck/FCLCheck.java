@@ -15,6 +15,7 @@ public class FCLCheck extends AbstractUIPlugin {
 		return instance;
 	}
 	
+	
 	/*
 	 * (non-Javadoc)
 	 * 
