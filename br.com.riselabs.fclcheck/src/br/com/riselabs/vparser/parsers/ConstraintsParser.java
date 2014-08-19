@@ -39,7 +39,6 @@ public class ConstraintsParser extends AbstractParser implements
 			
 			list.add(translate(result, getBinOpPosition(result)));
 		}
-		System.out.println("\n:: " + file + " statistics!");
 		return list;
 	}
 

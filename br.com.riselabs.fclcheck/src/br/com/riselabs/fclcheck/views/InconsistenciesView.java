@@ -126,7 +126,7 @@ public class InconsistenciesView extends ViewPart {
 	 */
 	public void createPartControl(Composite parent) {
 		createViewer(parent);
-		updateJob = new InconsistenciesViewUpdateJob("Update Inconsistencies View");
+		updateJob = new InconsistenciesViewUpdateJob("Updating Inconsistencies View...");
 		updateJob.setInconsistenciesView(this);
 		// Create the help context id for the viewer's control
 		PlatformUI
