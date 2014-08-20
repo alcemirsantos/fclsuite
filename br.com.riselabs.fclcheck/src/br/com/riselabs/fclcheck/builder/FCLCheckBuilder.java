@@ -279,7 +279,6 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 					break;
 				}
 
-				// TODO comprare(vmc, vps);
 				for (CCVariationPoint vp : vps) {
 					if (!vp.isSingleVP(vp.getTokens()))
 						continue;
@@ -294,21 +293,58 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 												+ f
 												+ " includes "
 												+ constraint.getRightTerm()
-												+ ". Make sure your are not introducing an inconsistency.",
+												+ ". Make sure you are not introducing an inconsistency. "
+												+ "You should declare "+constraint.getRightTerm()+" too.",
 										vp.getLineNumber()));
 							break;
 						case EXCLUDES:
 							if (constraint.getRightTerm().contains(f))
 								reporter.warning(new ConsistencyException(
 										"The featue " + f + " is excluded by: "
-												+ constraint.toString(), vp
+												+ constraint.toString()
+												+". Make sure you are not introducing an inconsistency. "
+												+ "You should declare "+constraint.getLeftTerm()+" too.", vp
 												.getLineNumber()));
 							break;
 						case MUTUALLY_EXCLUSIVE:
+							if (constraint.getLeftTerm().contains(f))
+								reporter.warning(new ConsistencyException(
+										"The feature "
+												+ f
+												+ " is mutually exclusive with "
+												+ constraint.getRightTerm()
+												+ ". Make sure your are not introducing an inconsistency. "
+												+ "Assure that "+constraint.getRightTerm()+" is NOT enabled.",
+										vp.getLineNumber()));
+							else if (constraint.getRightTerm().contains(f))
+								reporter.warning(new ConsistencyException(
+										"The feature "
+												+ f
+												+ " is mutually exclusive with "
+												+ constraint.getLeftTerm()
+												+ ". Make sure your are not introducing an inconsistency. "
+												+ "Assure that "+constraint.getLeftTerm()+" is NOT enabled.", vp
+												.getLineNumber()));
+							break;
 						case IFF:
-							reporter.fatalError(new ConsistencyException(
-									"dumb programmer did not implemented this shit yet.",
-									vp.getLineNumber()));
+							if (constraint.getLeftTerm().contains(f))
+								reporter.warning(new ConsistencyException(
+										"The feature "
+												+ f
+												+ " is mutually inclusive with "
+												+ constraint.getRightTerm()
+												+ ". Make sure your are not introducing an inconsistency. "
+												+ "Assure that "+constraint.getRightTerm()+" IS enabled.",
+										vp.getLineNumber()));
+							else if (constraint.getRightTerm().contains(f))
+								reporter.warning(new ConsistencyException(
+										"The feature "
+												+ f
+												+ " is mutually inclusive with "
+												+ constraint.getLeftTerm()
+												+ ". Make sure your are not introducing an inconsistency. "
+												+ "Assure that "+constraint.getLeftTerm()+" IS enabled.", vp
+												.getLineNumber()));
 							break;
 						default:
 							break;
