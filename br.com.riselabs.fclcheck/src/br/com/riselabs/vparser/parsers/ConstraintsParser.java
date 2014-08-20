@@ -53,7 +53,9 @@ public class ConstraintsParser extends AbstractParser implements
 		String expr="";
 	
 		for(int i=begin; i<end; i++){
-			expr+= l.get(i).getValue();
+			if(l.get(i).getLexeme()==TokenType.LEFT_PAR || l.get(i).getLexeme()==TokenType.RIGHT_PAR)
+				continue;
+			expr += l.get(i).getValue();
 		}
 		
 		return expr;

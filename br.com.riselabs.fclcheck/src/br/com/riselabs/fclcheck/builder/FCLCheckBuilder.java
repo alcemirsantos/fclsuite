@@ -1,6 +1,7 @@
 package br.com.riselabs.fclcheck.builder;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -37,8 +38,8 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 
 	private VariabilityModel vmodel;
 
-	private FCLCheckJob checkJob = new FCLCheckJob("Starting checking of consistency...");
-	
+	private FCLCheckJob checkJob;
+
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -51,20 +52,20 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 			VariabilityModel.getInstance().setProject(getProject());
 			vmodel = VariabilityModel.getInstance();
 		}
-		
+		checkJob = new FCLCheckJob("Checking " + getProject().getName()
+				+ " for inconsistencies.");
 		if (kind == FULL_BUILD) {
-//			fullBuild(monitor);
+			// fullBuild(monitor);
 			checkJob.setFullBuild(true);
 		} else {
 			IResourceDelta delta = getDelta(getProject());
 			if (delta == null) {
-//				fullBuild(monitor);
+				// fullBuild(monitor);
 				checkJob.setFullBuild(true);
 			} else {
-//				incrementalBuild(delta, monitor);
+				// incrementalBuild(delta, monitor);
 				checkJob.setFullBuild(false);
 				checkJob.setDelta(delta);
-				
 			}
 		}
 		checkJob.setUser(true);
@@ -76,7 +77,7 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 		// delete markers set and files created
 		getProject().deleteMarkers(MARKER_TYPE, true, IResource.DEPTH_INFINITE);
 	}
-	
+
 	void addMarker(IFile file, String message, int lineNumber, int severity) {
 		try {
 			IMarker marker = file.createMarker(MARKER_TYPE);
@@ -85,12 +86,12 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 			if (lineNumber == -1) {
 				lineNumber = 1;
 			}
+			marker.setAttribute(IMarker.LOCATION, file.getFullPath().toOSString());
 			marker.setAttribute(IMarker.LINE_NUMBER, lineNumber);
 		} catch (CoreException e) {
 		}
 	}
 
-	
 	class SampleDeltaVisitor implements IResourceDeltaVisitor {
 		/*
 		 * (non-Javadoc)
@@ -101,12 +102,18 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 		 */
 		public boolean visit(IResourceDelta delta) throws CoreException {
 			IResource resource = delta.getResource();
+			if (checkJob.getMonitor().isCanceled())
+				return false;
 			switch (delta.getKind()) {
 			case IResourceDelta.ADDED:
 				// handle added resource
 				try {
-					checkJob.setName("Checking: " + getProject().getName()+ File.separator + resource.getProjectRelativePath());
+					checkJob.getMonitor().subTask(
+							"checking " + resource.getFullPath());
+					// checkJob.setName("Checking: " + getProject().getName()+
+					// File.separator + resource.getProjectRelativePath());
 					checkJob.fclCheckThis(resource);
+					checkJob.getMonitor().worked(1);
 				} catch (PluginException e) {
 				}
 				break;
@@ -116,8 +123,12 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 			case IResourceDelta.CHANGED:
 				// handle changed resource
 				try {
-					checkJob.setName("Checking: " + getProject().getName()+ File.separator + resource.getProjectRelativePath());
+					checkJob.getMonitor().subTask(
+							"Checking: " + resource.getFullPath());
+					// checkJob.setName("Checking: " + getProject().getName()+
+					// File.separator + resource.getProjectRelativePath());
 					checkJob.fclCheckThis(resource);
+					checkJob.getMonitor().worked(1);
 				} catch (PluginException e) {
 				}
 				break;
@@ -129,9 +140,15 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 
 	class SampleResourceVisitor implements IResourceVisitor {
 		public boolean visit(IResource resource) {
+			if (checkJob.getMonitor().isCanceled())
+				return false;
 			try {
-				checkJob.setName("Checking: " + getProject().getName()+ File.separator + resource.getProjectRelativePath());
+				checkJob.getMonitor().subTask(
+						"checking: " + resource.getFullPath());
+				// checkJob.setName("Checking: " + getProject().getName()+
+				// File.separator + resource.getProjectRelativePath());
 				checkJob.fclCheckThis(resource);
+				checkJob.getMonitor().worked(1);
 			} catch (PluginException e) {
 			}
 			// return true to continue visiting children.
@@ -179,22 +196,28 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 		@Override
 		protected IStatus run(IProgressMonitor monitor) {
 			this.monitor = monitor;
-			
+
 			if (monitor.isCanceled())
 				return Status.CANCEL_STATUS;
-			
+
 			try {
-				if(isIncrementalBuild)
+				if (isIncrementalBuild) {
+					monitor.beginTask("Incremental building", 1);
 					incrementalBuild(delta, monitor);
-				else
+				} else {
+					monitor.beginTask("Full building",
+							getProject().members().length);
 					fullBuild(monitor);
+				}
 			} catch (CoreException e) {
 				e.printStackTrace();
+			} finally {
+				monitor.done();
 			}
-			
+			InconsistenciesView.getDefault().sync();
 			return Status.OK_STATUS;
 		}
-		
+
 		public void setDelta(IResourceDelta delta) {
 			this.delta = delta;
 		}
@@ -228,10 +251,10 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 			}
 		}
 
-		private Token getFeature(List<Token> tokens) {
+		private String getTAGValue(List<Token> tokens) {
 			for (Token token : tokens) {
 				if (token.getLexeme() == TokenType.TAG)
-					return token;
+					return token.getValue();
 			}
 			return null;
 		}
@@ -249,12 +272,11 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 			return false;
 		}
 
-		
 		public void fclCheckThis(IResource resource) throws PluginException {
 			if (resource instanceof IFile) {
 				IFile file = (IFile) resource;
 				if (!isSourceFile(file.getFileExtension()))
-					return ;
+					return;
 				deleteMarkers(file);
 				ConsistencyErrorHandler reporter = new ConsistencyErrorHandler(
 						file);
@@ -282,68 +304,81 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 				for (CCVariationPoint vp : vps) {
 					if (!vp.isSingleVP(vp.getTokens()))
 						continue;
-					String f = getFeature(vp.getTokens()).getValue();
-
+					String f = getTAGValue(vp.getTokens());
+					if (!isFeature(f))
+						continue;
 					for (FCLConstraint constraint : vmodel.getVMConstraints()) {
 						switch (constraint.getType()) {
 						case INCLUDES:
-							if (constraint.getLeftTerm().contains(f))
+							if (constraint.getLeftTerm().equals(f))
 								reporter.warning(new ConsistencyException(
 										"The feature "
 												+ f
 												+ " includes "
 												+ constraint.getRightTerm()
 												+ ". Make sure you are not introducing an inconsistency. "
-												+ "You should declare "+constraint.getRightTerm()+" too.",
-										vp.getLineNumber()));
+												+ "You should assert that "
+												+ constraint.getRightTerm()
+												+ " is declared.", vp.getLineNumber()));
 							break;
 						case EXCLUDES:
-							if (constraint.getRightTerm().contains(f))
+							if (constraint.getRightTerm().equals(f))
 								reporter.warning(new ConsistencyException(
-										"The featue " + f + " is excluded by: "
-												+ constraint.toString()
-												+". Make sure you are not introducing an inconsistency. "
-												+ "You should declare "+constraint.getLeftTerm()+" too.", vp
-												.getLineNumber()));
+										"The feature "
+												+ f
+												+ " is excluded by: "
+												+ constraint.getLeftTerm()
+												+ ". Make sure you are not introducing an inconsistency. "
+												+ "You should assert that "
+												+ constraint.getLeftTerm()
+												+ " is not declared.", vp.getLineNumber()));
 							break;
 						case MUTUALLY_EXCLUSIVE:
-							if (constraint.getLeftTerm().contains(f))
+							if (constraint.getLeftTerm().equals(f))
 								reporter.warning(new ConsistencyException(
 										"The feature "
 												+ f
 												+ " is mutually exclusive with "
 												+ constraint.getRightTerm()
 												+ ". Make sure your are not introducing an inconsistency. "
-												+ "Assure that "+constraint.getRightTerm()+" is NOT enabled.",
-										vp.getLineNumber()));
-							else if (constraint.getRightTerm().contains(f))
+												+ "You should assert that "
+												+ constraint.getRightTerm()
+												+ " is NOT enabled.", vp
+												.getLineNumber()));
+							else if (constraint.getRightTerm().equals(f))
 								reporter.warning(new ConsistencyException(
 										"The feature "
 												+ f
 												+ " is mutually exclusive with "
 												+ constraint.getLeftTerm()
 												+ ". Make sure your are not introducing an inconsistency. "
-												+ "Assure that "+constraint.getLeftTerm()+" is NOT enabled.", vp
+												+ "You should assert that "
+												+ constraint.getLeftTerm()
+												+ " is NOT enabled.", vp
 												.getLineNumber()));
 							break;
 						case IFF:
-							if (constraint.getLeftTerm().contains(f))
+							if (constraint.getLeftTerm().equals(f))
 								reporter.warning(new ConsistencyException(
 										"The feature "
 												+ f
-												+ " is mutually inclusive with "
+												+ " must exist if, and only if "
 												+ constraint.getRightTerm()
-												+ ". Make sure your are not introducing an inconsistency. "
-												+ "Assure that "+constraint.getRightTerm()+" IS enabled.",
-										vp.getLineNumber()));
-							else if (constraint.getRightTerm().contains(f))
+												+ " also exists. Make sure your are not introducing an inconsistency. "
+												+ "You should assert that "
+												+ constraint.getRightTerm()
+												+ " IS enabled.", vp
+												.getLineNumber()));
+							else if (constraint.getRightTerm().equals(f))
 								reporter.warning(new ConsistencyException(
 										"The feature "
 												+ f
-												+ " is mutually inclusive with "
+												+ " must exist if, and only if "
 												+ constraint.getLeftTerm()
-												+ ". Make sure your are not introducing an inconsistency. "
-												+ "Assure that "+constraint.getLeftTerm()+" IS enabled.", vp
+												+ " also exists. Make sure your are not introducing an inconsistency. "
+												+ "You should assert that "
+												+ constraint.getLeftTerm()
+												+ " IS enabled.", vp
 												.getLineNumber()));
 							break;
 						default:
@@ -352,9 +387,35 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 					}
 				}
 
-				InconsistenciesView.sync();
+				// InconsistenciesView.sync();
 			}
 		}
-	
+
+		private List<String> features = getFeatures(vmodel.getVMConstraints());
+
+		private boolean isFeature(String f) {
+			if (features.contains(f)) {
+				return true;
+			}
+			return false;
+		}
+
+		private List<String> getFeatures(List<FCLConstraint> vmConstraints) {
+			List<String> l = new ArrayList<>();
+			if (features == null) {
+				features = new ArrayList<>();
+			}
+			for (FCLConstraint fclConstraint : vmConstraints) {
+				if (!features.contains(fclConstraint.getLeftTerm())) {
+					l.add(fclConstraint.getLeftTerm());
+				}
+				if (!features.contains(fclConstraint.getRightTerm())) {
+					l.add(fclConstraint.getRightTerm());
+				}
+
+			}
+			return l;
+		}
+
 	}
 }

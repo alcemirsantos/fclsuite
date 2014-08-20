@@ -15,10 +15,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IWorkspaceRoot;
+import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.Path;
+import org.eclipse.ui.PlatformUI;
+
+import br.com.riselabs.fclcheck.exceptions.PluginException;
 import br.com.riselabs.vparser.lexer.Lexer;
 import br.com.riselabs.vparser.lexer.beans.Token;
 import br.com.riselabs.vparser.lexer.enums.TokenType;
 import br.com.riselabs.vparser.parsers.ClaferParser;
+import br.com.riselabs.vparser.parsers.ConstraintsParser;
 /**
  * @author Alcemir Santos
  * 
@@ -41,15 +49,26 @@ public class FCLCheckStandaloneMain {
 
 		for (String file : files) {
 			ConstraintFileReader.load(WORKSPACE + project + file);
-			List<String> constraints = ConstraintFileReader.getLines();
-			List<List<Token>> cTokenized = new ArrayList<List<Token>>();
-			for (String string : constraints) {
-				List<Token> result = Lexer.tokenize(string, Lexer.FileType.CONSTRAINTS);
-				cTokenized.add(result);
-				makeFCLConstraint(result);
+			IFile f = ResourcesPlugin.getWorkspace().getRoot().getFileForLocation(new Path(WORKSPACE+project+file));
+			try {
+				List<FCLConstraint> a = new ConstraintsParser().parse(f);
+				for (FCLConstraint fclConstraint : a) {
+					System.out.println(fclConstraint);
+				}
+				
+			} catch (PluginException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
-			System.out.println("\n:: "+file+" statistics!");
-			doContraintsStats(cTokenized);
+//			List<String> constraints = ConstraintFileReader.getLines();
+//			List<List<Token>> cTokenized = new ArrayList<List<Token>>();
+//			for (String string : constraints) {
+//				List<Token> result = Lexer.tokenize(string, Lexer.FileType.CONSTRAINTS);
+//				cTokenized.add(result);
+//				makeFCLConstraint(result);
+//			}
+//			System.out.println("\n:: "+file+" statistics!");
+//			doContraintsStats(cTokenized);
 		}
 	}
 

@@ -33,9 +33,7 @@ public class VariabilityModel {
 	}
 	
 	public List<FCLConstraint> getVMConstraints(){
-		if (vmConstraints.isEmpty() || vmConstraints == null) {
 			loadVMConstraints();
-		}
 		return vmConstraints;
 	}
 	

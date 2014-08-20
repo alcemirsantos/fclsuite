@@ -2,6 +2,7 @@ package br.com.riselabs.fclcheck.views;
 
 import java.util.List;
 
+import org.clafer.collection.Cons;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.action.Action;
@@ -21,6 +22,7 @@ import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.jface.viewers.TableViewerColumn;
 import org.eclipse.jface.viewers.Viewer;
+import org.eclipse.jface.viewers.ViewerComparator;
 import org.eclipse.jface.viewers.ViewerSorter;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Image;
@@ -57,6 +59,8 @@ public class InconsistenciesView extends ViewPart {
 
 	private static InconsistenciesViewUpdateJob updateJob;
 
+	private static InconsistenciesView instance;
+
 	/*
 	 * The content provider class is responsible for providing objects to the
 	 * view. It can wrap existing objects in adapters or simply return objects
@@ -65,7 +69,8 @@ public class InconsistenciesView extends ViewPart {
 	 * example).
 	 */
 
-	class InconsistenciesViewContentProvider implements IStructuredContentProvider {
+	class InconsistenciesViewContentProvider implements
+			IStructuredContentProvider {
 		public void inputChanged(Viewer v, Object oldInput, Object newInput) {
 		}
 
@@ -78,23 +83,40 @@ public class InconsistenciesView extends ViewPart {
 		}
 	}
 
+	class Const {
+		  public static final int COLUMN_MESSAGE = 0;
+
+		  public static final int COLUMN_TYPE = 1;
+
+		  public static final int COLUMN_LINE_NUMBER = 2;
+
+		  public static final int COLUMN_LOCATION = 4;
+
+		  public static final int COLUMN_FILE_NAME = 3;
+		}
+	
 	class InconsistenciesViewLabelProvider extends LabelProvider implements
 			ITableLabelProvider {
 		public String getColumnText(Object obj, int index) {
 			IMarker marker = (IMarker) obj;
-			switch(index){
-			case 0: //	"Description", 
-				return marker.getAttribute(IMarker.MESSAGE, "Undefined inconsistency.");
-			case 1: //	"Type",
+			switch (index) {
+			case Const.COLUMN_MESSAGE: // "Description",
+				return marker.getAttribute(IMarker.MESSAGE,
+						"Undefined inconsistency.");
+			case Const.COLUMN_TYPE: // "Type",
 				try {
 					return marker.getType();
 				} catch (CoreException e) {
 					e.printStackTrace();
 				}
-			case 2: //	"Line", 
+			case Const.COLUMN_LINE_NUMBER: // "Line",
 				return marker.getAttribute(IMarker.LINE_NUMBER, "1");
-			case 3: //	"Location"
-				return marker.getAttribute(IMarker.LOCATION, marker.getResource().getName());
+			case Const.COLUMN_FILE_NAME: // "File"
+				return marker.getAttribute(IMarker.LOCATION, marker
+						.getResource().getName());
+			case Const.COLUMN_LOCATION: // "Location"
+				return marker.getAttribute(IMarker.LOCATION, marker
+						.getResource().getFullPath().toOSString());
 			default:
 				break;
 			}
@@ -112,12 +134,56 @@ public class InconsistenciesView extends ViewPart {
 	}
 
 	class NameSorter extends ViewerSorter {
+		private static final int ASCENDING = 0;
+		private static final int DESCENDING = 1;
+		private int column;
+		private int direction;
+
+		public void doSort(int column) {
+			if (column == this.column) {
+				direction = 1 - direction;
+			} else {
+				this.column = column;
+				direction = ASCENDING;
+			}
+		}
+
+		public int compare(Viewer viewer, Object e1, Object e2) {
+			int rc = 0;
+			IMarker p1 = (IMarker) e1;
+			IMarker p2 = (IMarker) e2;
+
+			try {
+			switch (column) {
+			case Const.COLUMN_MESSAGE:
+				rc = getComparator().compare(p1.getAttribute(IMarker.MESSAGE), p2.getAttribute(IMarker.MESSAGE));
+				break;
+			case Const.COLUMN_TYPE:
+				rc = getComparator().compare(p1.getType(), p2.getType());
+				break;
+			case Const.COLUMN_LINE_NUMBER:
+					rc = ((Integer) p1.getAttribute(IMarker.LINE_NUMBER)) > ((Integer) p2.getAttribute(IMarker.LINE_NUMBER)) ? 1 : -1;
+				break;
+			case Const.COLUMN_FILE_NAME:
+				rc = rc = getComparator().compare(p1.getAttribute(IMarker.LOCATION), p2.getAttribute(IMarker.LOCATION));
+				break;
+			case Const.COLUMN_LOCATION:
+				rc = rc = getComparator().compare(p1.getAttribute(IMarker.LOCATION), p2.getAttribute(IMarker.LOCATION));
+				break;
+			}
+			} catch (CoreException e) {
+				e.printStackTrace();
+			}
+			if (direction == DESCENDING)
+				rc = -rc;
+			return rc;
+		}
 	}
 
 	/**
 	 * The constructor.
 	 */
-	public  InconsistenciesView() {
+	public InconsistenciesView() {
 	}
 
 	/**
@@ -125,8 +191,10 @@ public class InconsistenciesView extends ViewPart {
 	 * it.
 	 */
 	public void createPartControl(Composite parent) {
+		instance = this;
 		createViewer(parent);
-		updateJob = new InconsistenciesViewUpdateJob("Updating Inconsistencies View...");
+		updateJob = new InconsistenciesViewUpdateJob(
+				"Updating Inconsistencies View...");
 		updateJob.setInconsistenciesView(this);
 		// Create the help context id for the viewer's control
 		PlatformUI
@@ -138,7 +206,7 @@ public class InconsistenciesView extends ViewPart {
 		hookDoubleClickAction();
 		contributeToActionBars();
 		updateJob.schedule();
-//		viewer.setInput(getViewSite());
+		// viewer.setInput(getViewSite());
 	}
 
 	private void createViewer(Composite parent) {
@@ -153,8 +221,8 @@ public class InconsistenciesView extends ViewPart {
 	// This will create the columns for the table
 	private void createColumns() {
 
-		String[] titles = {"Description", "Type", "Line", "Location"};
-		int[] bounds = { 100, 50, 100, 50 };
+		String[] titles = { "Description", "Type", "Line", "File", "Location" };
+		int[] bounds = { 300, 150, 40, 100, 250 };
 
 		for (int i = 0; i < titles.length; i++) {
 			TableViewerColumn column = new TableViewerColumn(viewer, SWT.NONE);
@@ -193,6 +261,7 @@ public class InconsistenciesView extends ViewPart {
 			}
 		});
 	}
+
 	private void hookContextMenu() {
 		MenuManager menuMgr = new MenuManager("#PopupMenu");
 		menuMgr.setRemoveAllWhenShown(true);
@@ -279,8 +348,18 @@ public class InconsistenciesView extends ViewPart {
 		viewer.getControl().setFocus();
 	}
 
-	public static void sync() {
+	public static InconsistenciesView getDefault() {
+		return instance;
+	}
+
+	public void sync() {
 		updateJob.schedule();
-		
+		Display.getDefault().asyncExec(new Runnable() {
+			public void run() {
+				MessageDialog.openInformation(getSite().getShell(), "message",
+						"completed!");
+			}
+		});
+
 	}
 }
