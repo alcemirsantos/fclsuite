@@ -84,17 +84,17 @@ public class InconsistenciesView extends ViewPart {
 	}
 
 	class Const {
-		  public static final int COLUMN_MESSAGE = 0;
+		public static final int COLUMN_MESSAGE = 0;
 
-		  public static final int COLUMN_TYPE = 1;
+		public static final int COLUMN_TYPE = 1;
 
-		  public static final int COLUMN_LINE_NUMBER = 2;
+		public static final int COLUMN_LINE_NUMBER = 2;
 
-		  public static final int COLUMN_LOCATION = 4;
+		public static final int COLUMN_LOCATION = 4;
 
-		  public static final int COLUMN_FILE_NAME = 3;
-		}
-	
+		public static final int COLUMN_FILE_NAME = 3;
+	}
+
 	class InconsistenciesViewLabelProvider extends LabelProvider implements
 			ITableLabelProvider {
 		public String getColumnText(Object obj, int index) {
@@ -154,23 +154,30 @@ public class InconsistenciesView extends ViewPart {
 			IMarker p2 = (IMarker) e2;
 
 			try {
-			switch (column) {
-			case Const.COLUMN_MESSAGE:
-				rc = getComparator().compare(p1.getAttribute(IMarker.MESSAGE), p2.getAttribute(IMarker.MESSAGE));
-				break;
-			case Const.COLUMN_TYPE:
-				rc = getComparator().compare(p1.getType(), p2.getType());
-				break;
-			case Const.COLUMN_LINE_NUMBER:
-					rc = ((Integer) p1.getAttribute(IMarker.LINE_NUMBER)) > ((Integer) p2.getAttribute(IMarker.LINE_NUMBER)) ? 1 : -1;
-				break;
-			case Const.COLUMN_FILE_NAME:
-				rc = rc = getComparator().compare(p1.getAttribute(IMarker.LOCATION), p2.getAttribute(IMarker.LOCATION));
-				break;
-			case Const.COLUMN_LOCATION:
-				rc = rc = getComparator().compare(p1.getAttribute(IMarker.LOCATION), p2.getAttribute(IMarker.LOCATION));
-				break;
-			}
+				switch (column) {
+				case Const.COLUMN_MESSAGE:
+					rc = getComparator().compare(
+							p1.getAttribute(IMarker.MESSAGE),
+							p2.getAttribute(IMarker.MESSAGE));
+					break;
+				case Const.COLUMN_TYPE:
+					rc = getComparator().compare(p1.getType(), p2.getType());
+					break;
+				case Const.COLUMN_LINE_NUMBER:
+					rc = ((Integer) p1.getAttribute(IMarker.LINE_NUMBER)) > ((Integer) p2
+							.getAttribute(IMarker.LINE_NUMBER)) ? 1 : -1;
+					break;
+				case Const.COLUMN_FILE_NAME:
+					rc = rc = getComparator().compare(
+							p1.getAttribute(IMarker.LOCATION),
+							p2.getAttribute(IMarker.LOCATION));
+					break;
+				case Const.COLUMN_LOCATION:
+					rc = rc = getComparator().compare(
+							p1.getAttribute(IMarker.LOCATION),
+							p2.getAttribute(IMarker.LOCATION));
+					break;
+				}
 			} catch (CoreException e) {
 				e.printStackTrace();
 			}
@@ -356,8 +363,13 @@ public class InconsistenciesView extends ViewPart {
 		updateJob.schedule();
 		Display.getDefault().asyncExec(new Runnable() {
 			public void run() {
-				MessageDialog.openInformation(getSite().getShell(), "message",
-						"completed!");
+				MessageDialog
+						.openInformation(
+								getSite().getShell(),
+								"Build finished",
+								"FCLCheck successfully completed! You can see the inconsistencies "
+								+ "found either in 'Inconsistencies View' or in the source code "
+								+ "editor as warnings");
 			}
 		});
 
