@@ -68,6 +68,23 @@ public class FCLConstraint {
 	}
 	
 	@Override
+	public boolean equals(Object o) {
+		if (o == null)
+			return false;
+		if (o == this)
+			return true;
+		if (!(o instanceof FCLConstraint))
+			return false;
+		FCLConstraint other = (FCLConstraint) o;
+		if (getLeftTerm().equals(other.getLeftTerm())
+				&& getRightTerm().equals(other.getRightTerm())
+				&& getType() == other.getType())
+			return true;
+		else
+			return false;
+	}
+	
+	@Override
 	public String toString(){
 		return leftTerm+" "+type.getValue()+" "+rightTerm+";";
 	}

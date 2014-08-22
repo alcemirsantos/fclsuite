@@ -1,10 +1,11 @@
 package br.com.riselabs.fclcheck.builder;
 
-import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
@@ -23,6 +24,7 @@ import org.eclipse.core.runtime.jobs.Job;
 import br.com.riselabs.fclcheck.core.VariabilityModel;
 import br.com.riselabs.fclcheck.exceptions.PluginException;
 import br.com.riselabs.fclcheck.standalone.FCLConstraint;
+import br.com.riselabs.fclcheck.standalone.FCLDependencyType;
 import br.com.riselabs.fclcheck.views.InconsistenciesView;
 import br.com.riselabs.vparser.beans.CCVariationPoint;
 import br.com.riselabs.vparser.lexer.beans.Token;
@@ -86,7 +88,8 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 			if (lineNumber == -1) {
 				lineNumber = 1;
 			}
-			marker.setAttribute(IMarker.LOCATION, file.getFullPath().toOSString());
+			marker.setAttribute(IMarker.LOCATION, file.getFullPath()
+					.toOSString());
 			marker.setAttribute(IMarker.LINE_NUMBER, lineNumber);
 		} catch (CoreException e) {
 		}
@@ -207,7 +210,24 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 				} else {
 					monitor.beginTask("Full building",
 							getProject().members().length);
+
+					long initTime = System.nanoTime();
+					vpStats = new Statistics("VP");
+					resourceStats = new Statistics("Resources");
 					fullBuild(monitor);
+					long totalTime = System.nanoTime() - initTime;
+					System.out.println("===\n" + getProject().getName()
+							+ " full build took: " + totalTime / 1000000000.0
+							+ "s");
+					System.out.println(vpStats.toString());
+					System.out.println(resourceStats.toString());
+					System.out.println(resourceStats.getInconsistencies().size()+" inconsistencies found.");
+					System.out.println(resourceStats.getInconsistenciesAvgPerVP()+" inconsistencies per VP in average.");
+					System.out.println(resourceStats.getInconsistenciesAvgPerConstraint()+" inconsistencies per Constraint in average.");
+					System.out.println(resourceStats.getInconsistenciesPerCType().get(FCLDependencyType.INCLUDES)+" inconsistencies originated from INCLUDES.");
+					System.out.println(resourceStats.getInconsistenciesPerCType().get(FCLDependencyType.EXCLUDES)+" inconsistencies originated from EXCLUDES.");
+					System.out.println(resourceStats.getInconsistenciesPerCType().get(FCLDependencyType.MUTUALLY_EXCLUSIVE)+" inconsistencies originated from MUTUALLY EXCLUSIVE.");
+					System.out.println(resourceStats.getInconsistenciesPerCType().get(FCLDependencyType.IFF)+" inconsistencies originated from IFF.");
 				}
 			} catch (CoreException e) {
 				e.printStackTrace();
@@ -272,7 +292,11 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 			return false;
 		}
 
+		private Statistics resourceStats;
+		private Statistics vpStats;
+
 		public void fclCheckThis(IResource resource) throws PluginException {
+
 			if (resource instanceof IFile) {
 				IFile file = (IFile) resource;
 				if (!isSourceFile(file.getFileExtension()))
@@ -281,6 +305,7 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 				ConsistencyErrorHandler reporter = new ConsistencyErrorHandler(
 						file);
 
+				long resourceInitTime = System.nanoTime();
 				List<CCVariationPoint> vps = new LinkedList<>();
 				switch (resource.getFileExtension()) {
 				case "java":
@@ -300,18 +325,21 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 					}
 					break;
 				}
-
+				List<ConsistencyException> iList = new ArrayList<>();
+				resourceStats.setConstraintsNumber(vmodel.getVMConstraints().size());
 				for (CCVariationPoint vp : vps) {
+					long vpInitTime = System.nanoTime();
 					if (!vp.isSingleVP(vp.getTokens()))
 						continue;
 					String f = getTAGValue(vp.getTokens());
 					if (!isFeature(f))
 						continue;
+					ConsistencyException ce;
 					for (FCLConstraint constraint : vmodel.getVMConstraints()) {
 						switch (constraint.getType()) {
 						case INCLUDES:
-							if (constraint.getLeftTerm().equals(f))
-								reporter.warning(new ConsistencyException(
+							if (constraint.getLeftTerm().equals(f)) {
+								ce = new ConsistencyException(
 										"The feature "
 												+ f
 												+ " includes "
@@ -319,11 +347,16 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 												+ ". Make sure you are not introducing an inconsistency. "
 												+ "You should assert that "
 												+ constraint.getRightTerm()
-												+ " is declared.", vp.getLineNumber()));
+												+ " is declared.",
+										vp.getLineNumber());
+								iList.add(ce);
+								resourceStats.increment(FCLDependencyType.INCLUDES);
+								reporter.warning(ce);
+							}
 							break;
 						case EXCLUDES:
-							if (constraint.getRightTerm().equals(f))
-								reporter.warning(new ConsistencyException(
+							if (constraint.getRightTerm().equals(f)) {
+								ce = new ConsistencyException(
 										"The feature "
 												+ f
 												+ " is excluded by: "
@@ -331,11 +364,16 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 												+ ". Make sure you are not introducing an inconsistency. "
 												+ "You should assert that "
 												+ constraint.getLeftTerm()
-												+ " is not declared.", vp.getLineNumber()));
+												+ " is not declared.",
+										vp.getLineNumber());
+								iList.add(ce);
+								resourceStats.increment(FCLDependencyType.EXCLUDES);
+								reporter.warning(ce);
+							}
 							break;
 						case MUTUALLY_EXCLUSIVE:
-							if (constraint.getLeftTerm().equals(f))
-								reporter.warning(new ConsistencyException(
+							if (constraint.getLeftTerm().equals(f)) {
+								ce = new ConsistencyException(
 										"The feature "
 												+ f
 												+ " is mutually exclusive with "
@@ -343,10 +381,13 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 												+ ". Make sure your are not introducing an inconsistency. "
 												+ "You should assert that "
 												+ constraint.getRightTerm()
-												+ " is NOT enabled.", vp
-												.getLineNumber()));
-							else if (constraint.getRightTerm().equals(f))
-								reporter.warning(new ConsistencyException(
+												+ " is NOT enabled.",
+										vp.getLineNumber());
+								iList.add(ce);
+								resourceStats.increment(FCLDependencyType.MUTUALLY_EXCLUSIVE);
+								reporter.warning(ce);
+							} else if (constraint.getRightTerm().equals(f)) {
+								ce = new ConsistencyException(
 										"The feature "
 												+ f
 												+ " is mutually exclusive with "
@@ -354,12 +395,16 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 												+ ". Make sure your are not introducing an inconsistency. "
 												+ "You should assert that "
 												+ constraint.getLeftTerm()
-												+ " is NOT enabled.", vp
-												.getLineNumber()));
+												+ " is NOT enabled.",
+										vp.getLineNumber());
+								iList.add(ce);
+								resourceStats.increment(FCLDependencyType.MUTUALLY_EXCLUSIVE);
+								reporter.warning(ce);
+							}
 							break;
 						case IFF:
-							if (constraint.getLeftTerm().equals(f))
-								reporter.warning(new ConsistencyException(
+							if (constraint.getLeftTerm().equals(f)) {
+								ce = new ConsistencyException(
 										"The feature "
 												+ f
 												+ " must exist if, and only if "
@@ -367,10 +412,13 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 												+ " also exists. Make sure your are not introducing an inconsistency. "
 												+ "You should assert that "
 												+ constraint.getRightTerm()
-												+ " IS enabled.", vp
-												.getLineNumber()));
-							else if (constraint.getRightTerm().equals(f))
-								reporter.warning(new ConsistencyException(
+												+ " IS enabled.",
+										vp.getLineNumber());
+								iList.add(ce);
+								resourceStats.increment(FCLDependencyType.IFF);
+								reporter.warning(ce);
+							} else if (constraint.getRightTerm().equals(f)) {
+								ce = new ConsistencyException(
 										"The feature "
 												+ f
 												+ " must exist if, and only if "
@@ -378,15 +426,23 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 												+ " also exists. Make sure your are not introducing an inconsistency. "
 												+ "You should assert that "
 												+ constraint.getLeftTerm()
-												+ " IS enabled.", vp
-												.getLineNumber()));
+												+ " IS enabled.",
+										vp.getLineNumber());
+								iList.add(ce);
+								resourceStats.increment(FCLDependencyType.IFF);
+								reporter.warning(ce);
+							}
 							break;
 						default:
 							break;
 						}
 					}
+					vpStats.add(new TimeTaking(vpInitTime, System.nanoTime()));
+					resourceStats.add(iList, vp);
 				}
-
+				resourceStats.add(new TimeTaking(resourceInitTime, System
+						.nanoTime()));
+				resourceStats.add(iList, file);
 				// InconsistenciesView.sync();
 			}
 		}
@@ -418,4 +474,151 @@ public class FCLCheckBuilder extends IncrementalProjectBuilder {
 		}
 
 	}
+
+	class TimeTaking {
+
+		public TimeTaking(String s, long init, long finish) {
+			setFinishTime(finish);
+			setInitTime(init);
+			setProject(s);
+		}
+
+		public TimeTaking(long init, long finish) {
+			setFinishTime(finish);
+			setInitTime(init);
+			setProject("none");
+		}
+
+		public String getProject() {
+			return project;
+		}
+
+		public void setProject(String project) {
+			this.project = project;
+		}
+
+		public long getInitTime() {
+			return initTime;
+		}
+
+		public void setInitTime(long initTime) {
+			this.initTime = initTime;
+		}
+
+		public long getFinishTime() {
+			return finishTime;
+		}
+
+		public void setFinishTime(long finishTime) {
+			this.finishTime = finishTime;
+		}
+
+		private String project;
+		private long initTime;
+		private long finishTime;
+
+		public double getTotalTimeInSeconds() {
+			return (finishTime - initTime) / 1000000000.0;
+		}
+
+		@Override
+		public String toString() {
+			return this.project + " took " + getTotalTimeInSeconds() + "s.";
+		}
+	}
+
+	class Statistics {
+		private String variable;
+		private List<TimeTaking> times;
+		private Map<IFile, List<ConsistencyException>> mInconsistenciesFile;
+		private Map<CCVariationPoint, List<ConsistencyException>> mInconsistenciesVP;
+		private int numConstraints;
+		private Map<FCLDependencyType, Integer> numInconsistenciesPerCType;
+		
+		
+		public Statistics(String var) {
+			this.variable = var;
+		}
+
+		public void increment(FCLDependencyType type) {
+			if(numInconsistenciesPerCType==null){
+				numInconsistenciesPerCType = new HashMap<>();
+			}
+			if (numInconsistenciesPerCType.containsKey(type)) {
+				int i = numInconsistenciesPerCType.get(type);
+				numInconsistenciesPerCType.put(type, i+1);
+			}else{
+				numInconsistenciesPerCType.put(type, 1);
+			}
+		}
+		
+		public Map<FCLDependencyType, Integer> getInconsistenciesPerCType(){
+			return numInconsistenciesPerCType;
+		}
+		
+		public void setConstraintsNumber(int n){
+			this.numConstraints = n;
+		}
+		
+		public double getInconsistenciesAvgPerConstraint() {
+			return ((double) getInconsistencies().size())/((double)numConstraints);
+		}
+
+		public double getInconsistenciesAvgPerVP() {
+			double vp=(double) mInconsistenciesVP.keySet().size();
+			double ce= (double)getInconsistencies().size();
+			return vp/ce;
+		}
+		
+		public void add(List<ConsistencyException> iList, IFile f) {
+			if (mInconsistenciesFile ==null || mInconsistenciesFile.isEmpty()) {
+				mInconsistenciesFile = new HashMap<>();
+			}
+			this.mInconsistenciesFile.put(f, iList);
+		}
+		public void add(List<ConsistencyException> iList, CCVariationPoint vp) {
+			if (mInconsistenciesVP == null || mInconsistenciesVP.isEmpty()) {
+				mInconsistenciesVP = new HashMap<>();
+			}
+			this.mInconsistenciesVP.put(vp, iList);
+		}
+
+		public void add(TimeTaking t) {
+			if (times == null) {
+				times = new ArrayList<>();
+			}
+			times.add(t);
+		}
+
+		public List<ConsistencyException> getInconsistencies(){
+			ArrayList<ConsistencyException> inconsistencies = new ArrayList<>();
+			for (Entry<IFile, List<ConsistencyException>> e : mInconsistenciesFile.entrySet()) {
+				inconsistencies.addAll(e.getValue());
+			}
+			return inconsistencies;
+		}
+		
+		public Map<IFile,List<ConsistencyException>> getInconsistenciesPerFile(){
+			return mInconsistenciesFile;
+		}
+		
+		public Map<CCVariationPoint, List<ConsistencyException>> getInconsistenciesPerVP(){
+			return mInconsistenciesVP;
+		}
+		public double timeAvg() {
+			if (times == null || times.isEmpty())
+				return 0.0;
+			double time = 0.0;
+			for (TimeTaking t : times) {
+				time += t.getTotalTimeInSeconds();
+			}
+			return time / times.size();
+		}
+
+		@Override
+		public String toString() {
+			return times.size()+" "+variable + " takes in average " + timeAvg() + "s to build.";
+		}
+	}
+
 }
